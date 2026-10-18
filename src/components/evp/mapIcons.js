@@ -1,8 +1,9 @@
 import L from 'leaflet';
-import { SIGNAL_HEX, MOVE_ARROW } from './format';
+import { SIGNAL_VAR, MOVE_ARROW } from './format';
 
 /* Leaflet DivIcons for the command map. Icons are cached by a state key so
-   unchanged markers are not re-created on every snapshot. */
+   unchanged markers are not re-created on every snapshot. Colours are theme
+   tokens (CSS variables), so markers follow light/dark mode. */
 
 const cache = new Map();
 function cached(key, make) {
@@ -13,14 +14,14 @@ function cached(key, make) {
   return cache.get(key);
 }
 
-const PRIORITY_HEX = { Critical: '#ef4444', Urgent: '#f59e0b', 'Non-urgent': '#38bdf8' };
-const MODE_FILL = { ADAPTIVE: '#1e293b', PREEMPT: '#2b74dc', RECOVERY: '#b45309' };
+const PRIORITY_COLOR = { Critical: 'var(--color-danger)', Urgent: 'var(--color-warning)', 'Non-urgent': 'var(--color-info)' };
+const MODE_FILL = { ADAPTIVE: 'var(--color-surface-raised)', PREEMPT: 'var(--color-primary)', RECOVERY: 'var(--color-warning)' };
 
 function spoke(bearing, len, color, width = 4) {
   const a = (bearing * Math.PI) / 180;
   const x = 22 + Math.sin(a) * len;
   const y = 22 - Math.cos(a) * len;
-  return `<line x1="22" y1="22" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="${color}" stroke-width="${width}" stroke-linecap="round"/>`;
+  return `<line x1="22" y1="22" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" style="stroke: ${color}" stroke-width="${width}" stroke-linecap="round"/>`;
 }
 
 function arrowPath(junction, arm, move) {
@@ -30,7 +31,7 @@ function arrowPath(junction, arm, move) {
   const p = (bearing, d) => { const r = (bearing * Math.PI) / 180; return [22 + Math.sin(r) * d, 22 - Math.cos(r) * d]; };
   const [x0, y0] = p(a.bearing, 19);
   const [x1, y1] = p(b.bearing, 19);
-  return `<path d="M${x0.toFixed(1)} ${y0.toFixed(1)} Q22 22 ${x1.toFixed(1)} ${y1.toFixed(1)}" fill="none" stroke="#c4b5fd" stroke-width="3.5" stroke-linecap="round" marker-end="url(#m)"/>`;
+  return `<path d="M${x0.toFixed(1)} ${y0.toFixed(1)} Q22 22 ${x1.toFixed(1)} ${y1.toFixed(1)}" fill="none" style="stroke: var(--color-accent)" stroke-width="3.5" stroke-linecap="round" marker-end="url(#m)"/>`;
 }
 
 /**
@@ -43,19 +44,19 @@ export function junctionIcon(junction, st, ap, selected) {
   const mode = st?.mode || 'ADAPTIVE';
   const key = `j|${junction.id}|${mode}|${Object.values(arms).join('')}|${ap ? `${ap.arm}${ap.move}${ap.label}` : ''}|${selected ? 1 : 0}`;
   return cached(key, () => {
-    const spokes = junction.arms.map((a) => spoke(a.bearing, 15, SIGNAL_HEX[arms[a.id] || 'R'])).join('');
-    const ring = mode === 'PREEMPT' ? '<circle cx="22" cy="22" r="20" fill="none" stroke="#3a86f0" stroke-width="2.5" class="evp-pulse"/>'
-      : mode === 'RECOVERY' ? '<circle cx="22" cy="22" r="20" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="3 3"/>' : '';
-    const sel = selected ? '<circle cx="22" cy="22" r="21" fill="none" stroke="#ffffff" stroke-width="2"/>' : '';
+    const spokes = junction.arms.map((a) => spoke(a.bearing, 15, SIGNAL_VAR[arms[a.id] || 'R'])).join('');
+    const ring = mode === 'PREEMPT' ? '<circle cx="22" cy="22" r="20" fill="none" style="stroke: var(--color-primary)" stroke-width="2.5" class="evp-pulse"/>'
+      : mode === 'RECOVERY' ? '<circle cx="22" cy="22" r="20" fill="none" style="stroke: var(--color-warning)" stroke-width="2" stroke-dasharray="3 3"/>' : '';
+    const sel = selected ? '<circle cx="22" cy="22" r="21" fill="none" style="stroke: var(--color-text)" stroke-width="2"/>' : '';
     const arrow = ap ? arrowPath(junction, ap.arm, ap.move) : '';
     const html = `
       <div class="jn-icon">
         <svg width="44" height="44" viewBox="0 0 44 44">
-          <defs><marker id="m" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M0 0L10 5L0 10z" fill="#c4b5fd"/></marker></defs>
+          <defs><marker id="m" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M0 0L10 5L0 10z" style="fill: var(--color-accent)"/></marker></defs>
           ${ring}${sel}
-          <circle cx="22" cy="22" r="13" fill="rgba(10,14,22,0.82)"/>
+          <circle cx="22" cy="22" r="13" style="fill: var(--color-surface)" fill-opacity="0.88"/>
           ${spokes}
-          <circle cx="22" cy="22" r="6" fill="${MODE_FILL[mode]}" stroke="#ffffff" stroke-width="1.5"/>
+          <circle cx="22" cy="22" r="6" style="fill: ${MODE_FILL[mode]}; stroke: var(--color-text)" stroke-width="1.5"/>
           ${arrow}
         </svg>
         <span class="jn-label">${junction.id}${junction.poc ? ' ★' : ''}</span>
@@ -72,11 +73,11 @@ export function ambulanceIcon({ id, heading, priority, quarantined, selected, id
     if (idle) {
       return L.divIcon({ html: `<div class="amb-idle" title="${id}"></div>`, className: 'evp-divicon', iconSize: [10, 10], iconAnchor: [5, 5] });
     }
-    const color = quarantined ? '#64748b' : PRIORITY_HEX[priority] || '#38bdf8';
+    const color = quarantined ? 'var(--color-neutral)' : PRIORITY_COLOR[priority] || 'var(--color-info)';
     const html = `
       <div class="amb-icon ${selected ? 'is-selected' : ''}">
         <svg width="34" height="34" viewBox="0 0 34 34" style="transform: rotate(${h}deg)">
-          <circle cx="17" cy="17" r="13" fill="${color}" stroke="#ffffff" stroke-width="2.5"/>
+          <circle cx="17" cy="17" r="13" style="fill: ${color}; stroke: ${selected ? 'var(--color-text)' : 'var(--color-surface)'}" stroke-width="2.5"/>
           <path d="M17 6 L23 19 L17 16 L11 19 Z" fill="#ffffff"/>
         </svg>
         <span class="amb-label">${id}${quarantined ? ' ⛔' : ''}</span>

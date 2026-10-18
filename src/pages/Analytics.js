@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Card, Badge, PageHeader, StatGrid, StatCard, Tabs, Button, IconButton, DataTable, Field, ProgressBar } from '../components/ui';
-import ChartCard, { ChartTable } from '../components/charts/ChartCard';
+import { Card, Badge, PageHeader, StatGrid, StatCard, Tabs, Button, DataTable, Field, ProgressBar } from '../components/ui';
+import ChartCard from '../components/charts/ChartCard';
 import { useData } from '../data/DataProvider';
 import { DEFAULT_ASSUMPTIONS } from '../evp/analytics';
 import { PriorityBadge, fmtS, fmtNum, fmtRM, fmtPct, fmtDate } from '../components/evp/format';
@@ -48,11 +48,11 @@ function Overview({ an, allTrips }) {
       </StatGrid>
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <ChartCard title="Average trip time: before / after EVP" subtitle="Same trips, same traffic: actual time with EVP versus the no-EVP baseline from the shadow SCATS controller (minutes)"
-          type="line" legend height={230} unit=" min"
+          type="line" legend height={230}
           data={{
             labels: an.monthly.map((m) => shortMonth(m.month)),
             datasets: [
-              { label: 'No-EVP baseline', data: an.monthly.map((m) => Math.round((m.avgBaseline / 60) * 10) / 10), color: 'chart-2', fill: false },
+              { label: 'No-EVP baseline', data: an.monthly.map((m) => Math.round((m.avgBaseline / 60) * 10) / 10), color: 'chart-2' },
               { label: 'With EVP', data: an.monthly.map((m) => Math.round((m.avgDuration / 60) * 10) / 10), color: 'chart-1' },
             ],
           }} />
@@ -60,9 +60,8 @@ function Overview({ an, allTrips }) {
           data={{ labels: an.savedHistogram.map((b) => `${b.label} s`), datasets: [{ label: 'Trips', data: an.savedHistogram.map((b) => b.count), color: 'chart-1' }] }} />
       </div>
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-4">
-        <ChartCard title="Time saved by destination hospital" subtitle="Average seconds saved per trip to each hospital" type="bar" height={200} unit=" s"
-          data={{ labels: an.byHospital.map((h) => h.id), datasets: [{ label: 'Avg seconds saved', data: an.byHospital.map((h) => h.avgSaved), color: 'chart-1' }] }}
-          table={{ columns: ['Hospital', 'Trips', 'Avg saved', 'Total saved'], rows: an.byHospital.map((h) => [h.name, h.trips, `${h.avgSaved} s`, `${fmtNum(h.totalSavedMin, 0)} min`]) }} />
+        <ChartCard title="Time saved by destination hospital" subtitle="Average seconds saved per trip to each hospital" type="bar" height={200}
+          data={{ labels: an.byHospital.map((h) => h.id), datasets: [{ label: 'Avg seconds saved', data: an.byHospital.map((h) => h.avgSaved), color: 'chart-1' }] }} />
         <Card title="By patient priority">
           <div className="space-y-3">
             {an.byPriority.map((p) => (
@@ -90,40 +89,34 @@ function Overview({ an, allTrips }) {
 
 /* ─── Junction heatmap + rollout ranking ───────────────────── */
 function Heatmap({ ranking }) {
-  const [asTable, setAsTable] = useState(false);
   const max = Math.max(1, ...ranking.flatMap((r) => r.byHour.filter((x) => x != null)));
   const shade = (v) => (v == null ? 'transparent' : `rgba(var(--chart-seq-rgb), ${(0.08 + 0.92 * (v / max)).toFixed(3)})`);
   return (
-    <Card title="Junction delay heatmap" subtitle="Average red-light wait an ambulance would face without EVP, by junction and hour of day. Darker = longer wait. Rows in rollout-rank order."
-      actions={<IconButton icon={asTable ? 'barChart' : 'clipboard'} label={asTable ? 'Show heatmap' : 'Show as table'} plain active={asTable} onClick={() => setAsTable((v) => !v)} />}>
-      {asTable ? (
-        <ChartTable height={420} table={{ columns: ['Junction', ...Array.from({ length: 24 }, (_, h) => `${String(h).padStart(2, '0')}h`)], rows: ranking.map((r) => [r.id, ...r.byHour.map((x) => (x == null ? '–' : `${Math.round(x)}`))]) }} />
-      ) : (
-        <div className="overflow-x-auto">
-          <div style={{ minWidth: 640 }}>
-            <div className="grid items-center gap-[2px]" style={{ gridTemplateColumns: '150px repeat(24, minmax(0, 1fr))' }}>
-              <span />
-              {Array.from({ length: 24 }, (_, h) => <span key={h} className="text-[9px] text-fg-faint text-center">{h % 3 === 0 ? String(h).padStart(2, '0') : ''}</span>)}
-              {ranking.map((r) => (
-                <React.Fragment key={r.id}>
-                  <span className="text-[11px] text-fg-muted truncate pr-2" title={r.name}><b className="text-fg">{r.id}</b> {r.name.split(' / ')[0]}</span>
-                  {r.byHour.map((v, h) => (
-                    <span key={h} className="heat-cell" tabIndex={0} style={{ background: shade(v), outline: v == null ? '1px dashed var(--color-border)' : undefined, outlineOffset: -1 }}
-                      title={`${r.id} ${String(h).padStart(2, '0')}:00: ${v == null ? 'no crossings' : `${Math.round(v)} s avg wait (${r.byHourN[h]} crossings)`}`}
-                      aria-label={`${r.id} ${h}:00 ${v == null ? 'no data' : `${Math.round(v)} seconds`}`} />
-                  ))}
-                </React.Fragment>
-              ))}
-            </div>
-            <div className="flex items-center gap-2 mt-3 text-[10px] text-fg-faint">
-              <span>0 s</span>
-              <span className="h-2 w-40 rounded" style={{ background: 'linear-gradient(90deg, rgba(var(--chart-seq-rgb),0.08), rgba(var(--chart-seq-rgb),1))' }} />
-              <span>{Math.round(max)} s avg wait</span>
-              <span className="ml-3 inline-flex items-center gap-1"><span className="w-3 h-3 rounded-sm" style={{ outline: '1px dashed var(--color-border)', outlineOffset: -1 }} />no crossings in that hour</span>
-            </div>
+    <Card title="Junction delay heatmap" subtitle="Average red-light wait an ambulance would face without EVP, by junction and hour of day. Stronger colour = longer wait. Rows in rollout-rank order.">
+      <div className="overflow-x-auto">
+        <div style={{ minWidth: 640 }}>
+          <div className="grid items-center gap-[2px]" style={{ gridTemplateColumns: '150px repeat(24, minmax(0, 1fr))' }}>
+            <span />
+            {Array.from({ length: 24 }, (_, h) => <span key={h} className="text-[9px] text-fg-faint text-center">{h % 3 === 0 ? String(h).padStart(2, '0') : ''}</span>)}
+            {ranking.map((r) => (
+              <React.Fragment key={r.id}>
+                <span className="text-[11px] text-fg-muted truncate pr-2" title={r.name}><b className="text-fg">{r.id}</b> {r.name.split(' / ')[0]}</span>
+                {r.byHour.map((v, h) => (
+                  <span key={h} className="heat-cell" tabIndex={0} style={{ background: shade(v), outline: v == null ? '1px dashed var(--color-border)' : undefined, outlineOffset: -1 }}
+                    title={`${r.id} ${String(h).padStart(2, '0')}:00: ${v == null ? 'no crossings' : `${Math.round(v)} s avg wait (${r.byHourN[h]} crossings)`}`}
+                    aria-label={`${r.id} ${h}:00 ${v == null ? 'no data' : `${Math.round(v)} seconds`}`} />
+                ))}
+              </React.Fragment>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 mt-3 text-[10px] text-fg-faint">
+            <span>0 s</span>
+            <span className="h-2 w-40 rounded" style={{ background: 'linear-gradient(90deg, rgba(var(--chart-seq-rgb),0.08), rgba(var(--chart-seq-rgb),1))' }} />
+            <span>{Math.round(max)} s avg wait</span>
+            <span className="ml-3 inline-flex items-center gap-1"><span className="w-3 h-3 rounded-sm" style={{ outline: '1px dashed var(--color-border)', outlineOffset: -1 }} />no crossings in that hour</span>
           </div>
         </div>
-      )}
+      </div>
     </Card>
   );
 }
@@ -178,16 +171,15 @@ function CostBenefit({ an, assumptions, setAssumptions }) {
       </StatGrid>
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_380px] gap-4">
         <ChartCard title="Cumulative cost and benefit vs RM2.0M budget" subtitle="Benefits ramp with the phased rollout: 8 junctions in 2027, 16 in 2028, all 22 from 2029 (RM million)"
-          type="line" legend height={260} unit="M"
+          type="line" legend height={260}
           thresholds={[{ value: cb.budget.totalRM / 1e6, tone: 'danger', label: 'Budget RM2.0M', description: 'RM1.1M capex + RM0.9M maintenance (RM225k/yr)' }]}
           data={{
             labels: cb.rows.map((r) => String(r.year)),
             datasets: [
-              { label: 'Cumulative spend', data: cb.rows.map((r) => Math.round(r.cumCost / 1e4) / 100), color: 'chart-2', fill: false, tension: 0 },
-              { label: 'Cumulative benefit', data: cb.rows.map((r) => Math.round(r.cumBenefit / 1e4) / 100), color: 'chart-1', tension: 0 },
+              { label: 'Cumulative spend', data: cb.rows.map((r) => Math.round(r.cumCost / 1e4) / 100), color: 'chart-2' },
+              { label: 'Cumulative benefit', data: cb.rows.map((r) => Math.round(r.cumBenefit / 1e4) / 100), color: 'chart-1' },
             ],
-          }}
-          table={{ columns: ['Year', 'Spend', 'Benefit', 'Cum. spend', 'Cum. benefit', 'Junctions live'], rows: cb.rows.map((r) => [r.year, fmtRM(r.cost), fmtRM(r.benefit), fmtRM(r.cumCost), fmtRM(r.cumBenefit), Math.round(r.coverage * 22)]) }} />
+          }} />
         <Card title="Assumptions" subtitle="Edit to test sensitivity. Time saved per trip comes from the measured pilot data."
           actions={<Button size="sm" variant="ghost" icon="refresh" onClick={() => setAssumptions(DEFAULT_ASSUMPTIONS)}>Reset</Button>}>
           <div className="space-y-2.5">
@@ -246,12 +238,11 @@ function Models({ modelInfo, modelLog, liveAccuracy, training, history }) {
         </Card>
       </div>
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <ChartCard title="ETA feature importance" subtitle="Share of squared-error reduction contributed by each feature across all trees" type="bar" height={260} unit="%"
+        <ChartCard title="ETA feature importance" subtitle="Share of squared-error reduction contributed by each feature across all trees" type="bar" height={260}
           options={{ indexAxis: 'y' }}
           data={{ labels: imp.map((f) => f.label), datasets: [{ label: 'Importance (%)', data: imp.map((f) => Math.round((f.value / impTotal) * 1000) / 10), color: 'chart-1' }] }} />
-        <ChartCard title="ETA error by horizon" subtitle="Mean absolute error on held-out trips, by how far ahead the prediction was made" type="bar" height={260} unit=" s"
-          data={{ labels: eta.byHorizon.map((h) => h.range), datasets: [{ label: 'MAE (s)', data: eta.byHorizon.map((h) => (h.mae == null ? null : Math.round(h.mae * 10) / 10)), color: 'chart-1' }] }}
-          table={{ columns: ['Horizon', 'MAE', 'Samples'], rows: eta.byHorizon.map((h) => [h.range, h.mae == null ? '–' : `${fmtNum(h.mae, 1)} s`, h.n]) }} />
+        <ChartCard title="ETA error by horizon" subtitle="Mean absolute error on held-out trips, by how far ahead the prediction was made" type="bar" height={260}
+          data={{ labels: eta.byHorizon.map((h) => h.range), datasets: [{ label: 'MAE (s)', data: eta.byHorizon.map((h) => (h.mae == null ? null : Math.round(h.mae * 10) / 10)), color: 'chart-1' }] }} />
       </div>
       <div className="grid grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)] gap-4">
         <Card title="Live ETA accuracy" subtitle="Predicted vs actual arrival on trips completed this session">

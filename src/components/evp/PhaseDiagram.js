@@ -1,5 +1,5 @@
 import React from 'react';
-import { SIGNAL_HEX } from './format';
+import { SIGNAL_VAR } from './format';
 
 /* SVG plan view of a junction: arms at their real bearings, a signal lamp
    on each approach, and movement arrows for the highlighted phase.
@@ -70,7 +70,7 @@ export default function PhaseDiagram({ junction, phase, armStates = {}, predicte
         const w = 12 + a.lanes * 7;
         const [x0, y0] = pt(a.bearing, 40, -w / 2);
         const [x1, y1] = pt(a.bearing, 40, w / 2);
-        return <line key={`ped-${a.id}`} x1={x0} y1={y0} x2={x1} y2={y1} stroke={ped === 'WALK' ? SIGNAL_HEX.G : SIGNAL_HEX.A} strokeWidth="6" strokeDasharray="2 3" opacity="0.9" />;
+        return <line key={`ped-${a.id}`} x1={x0} y1={y0} x2={x1} y2={y1} stroke={ped === 'WALK' ? SIGNAL_VAR.G : SIGNAL_VAR.A} strokeWidth="6" strokeDasharray="2 3" opacity="0.9" />;
       })}
       {/* Phase movements */}
       {moves.map(([from, move]) => {
@@ -91,7 +91,7 @@ export default function PhaseDiagram({ junction, phase, armStates = {}, predicte
         const [tx, ty] = pt(a.bearing, R + 40);
         return (
           <g key={`sig-${a.id}`}>
-            <circle cx={lx} cy={ly} r="7" fill={SIGNAL_HEX[st]} stroke="var(--color-surface)" strokeWidth="2" />
+            <circle cx={lx} cy={ly} r="7" fill={SIGNAL_VAR[st]} stroke="var(--color-surface)" strokeWidth="2" />
             {showLabels && (
               <>
                 <text x={tx} y={ty - 4} textAnchor="middle" fontSize="11" fontWeight="700" fill="var(--color-text)">{a.id}</text>

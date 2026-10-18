@@ -49,7 +49,7 @@ export default function Layout({ children }) {
           activePanel={panel}
           onTogglePanel={togglePanel}
         />
-        <main className="flex-1 overflow-y-auto p-4 md:p-5">{ready ? children : <BootScreen status={status} />}</main>
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">{ready ? children : <BootScreen status={status} />}</main>
       </div>
 
       {panel === 'notifications' && <NotificationsPanel onClose={() => setPanel(null)} />}

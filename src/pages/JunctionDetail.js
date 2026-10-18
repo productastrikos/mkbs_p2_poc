@@ -121,7 +121,7 @@ export default function JunctionDetail() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        {queueChart && <ChartCard title="Queue by approach" subtitle="Vehicles queued per arm, last 10 minutes (5 s samples). Pre-emption builds queues on the other arms; recovery drains them." type="line" data={queueChart} legend height={220} unit=" veh" options={NO_ANIM} />}
+        {queueChart && <ChartCard title="Queue by approach" subtitle="Vehicles queued per arm, last 10 minutes (5 s samples). Pre-emption builds queues on the other arms; recovery drains them." type="line" data={queueChart} legend height={220} options={NO_ANIM} />}
         <Card title="SCATS adapter log" subtitle="Calls through the adapter interface: notifyApproach, requestPhase, holdPhase, release" padded={false}>
           <div className="overflow-auto" style={{ maxHeight: 262 }}>
             <table className="table">
@@ -144,9 +144,8 @@ export default function JunctionDetail() {
 
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-4">
         <ChartCard title="No-EVP wait by hour of day" subtitle="Average red-light wait an ambulance would have had here without EVP, from the pilot trip history (local time)"
-          type="bar" height={200} unit=" s"
-          data={{ labels: hourly.map((_, h) => `${String(h).padStart(2, '0')}h`), datasets: [{ label: 'Avg no-EVP wait (s)', data: hourly.map((x) => x ?? 0), color: 'chart-1' }] }}
-          table={{ columns: ['Hour', 'Avg no-EVP wait', 'Crossings'], rows: hourly.map((x, h) => [`${String(h).padStart(2, '0')}:00`, x == null ? '–' : `${x} s`, an?.byHourN[h] ?? 0]) }} />
+          type="bar" height={200}
+          data={{ labels: hourly.map((_, h) => `${String(h).padStart(2, '0')}h`), datasets: [{ label: 'Avg no-EVP wait (s)', data: hourly.map((x) => x ?? 0), color: 'chart-1' }] }} />
         <Card title="Pilot statistics">
           {an ? (
             <div className="space-y-2">

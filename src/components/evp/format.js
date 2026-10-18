@@ -7,7 +7,6 @@ export const STATUS_LABEL = { TO_PATIENT: 'To patient', TO_HOSPITAL: 'To hospita
 export const MODE_TONE = { ADAPTIVE: 'neutral', PREEMPT: 'primary', RECOVERY: 'warning' };
 export const MODE_LABEL = { ADAPTIVE: 'SCATS adaptive', PREEMPT: 'EVP pre-emption', RECOVERY: 'Recovery' };
 export const SIGNAL_VAR = { G: 'var(--signal-green)', A: 'var(--signal-amber)', R: 'var(--signal-red)' };
-export const SIGNAL_HEX = { G: '#22c55e', A: '#f59e0b', R: '#ef4444' };
 export const REQUEST_LABEL = {
   SENT: 'Requested', GREEN: 'Green held', YIELDING: 'Yielding', BLOCKED: 'Blocked', RELEASED: 'Released', CANCELLED: 'Cancelled',
 };
@@ -45,9 +44,9 @@ export function ModeBadge({ mode, recovery }) {
 export function SignalHead({ state, size = 10, vertical = false }) {
   const lamps = ['R', 'A', 'G'];
   return (
-    <span className={`inline-flex ${vertical ? 'flex-col' : ''} gap-0.5 p-0.5 rounded-md`} style={{ background: '#0a0d14' }} role="img" aria-label={`Signal ${state === 'G' ? 'green' : state === 'A' ? 'amber' : 'red'}`}>
+    <span className={`inline-flex ${vertical ? 'flex-col' : ''} gap-0.5 p-0.5 rounded-md`} style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }} role="img" aria-label={`Signal ${state === 'G' ? 'green' : state === 'A' ? 'amber' : 'red'}`}>
       {lamps.map((l) => (
-        <span key={l} className="rounded-full" style={{ width: size, height: size, background: state === l ? SIGNAL_HEX[l] : '#242a36', boxShadow: state === l ? `0 0 6px ${SIGNAL_HEX[l]}` : 'none' }} />
+        <span key={l} className="rounded-full" style={{ width: size, height: size, background: state === l ? SIGNAL_VAR[l] : 'var(--color-surface-raised)', boxShadow: state === l ? `0 0 6px ${SIGNAL_VAR[l]}` : 'none' }} />
       ))}
     </span>
   );

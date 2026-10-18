@@ -5,6 +5,7 @@ import { Card, Button, Badge, Tabs, Icon, PageHeader, DetailGrid } from '../comp
 import { useData, useSim } from '../data/DataProvider';
 import { useTheme } from '../theme/ThemeProvider';
 import BaseTiles from '../components/evp/BaseTiles';
+import { resolveColor } from '../components/charts/chartTheme';
 import { ambulanceIcon, junctionIcon, hospitalIcon, moveGlyph } from '../components/evp/mapIcons';
 import { PriorityBadge, fmtS, STATUS_LABEL, REQUEST_LABEL } from '../components/evp/format';
 import { MOVE_LABEL } from '../evp/junctions';
@@ -114,7 +115,7 @@ function ActiveTrip({ trip, engine, data, theme }) {
         <div className="card overflow-hidden" style={{ height: 300 }}>
           <MapContainer center={veh ? [veh.lat, veh.lng] : [1.535, 110.36]} zoom={16} zoomControl={false} attributionControl={false} style={{ height: '100%', width: '100%' }}>
             <BaseTiles theme={theme} />
-            {route && <Polyline positions={route} pathOptions={{ color: '#3a86f0', weight: 5, opacity: 0.85 }} />}
+            {route && <Polyline positions={route} pathOptions={{ color: resolveColor('primary'), weight: 5, opacity: 0.85 }} />}
             {nextJ && <Marker position={[nextJ.lat, nextJ.lng]} icon={junctionIcon(nextJ, jStates[nextJ.id], { arm: trip.next.arm, move: trip.next.top, label: `${moveGlyph(trip.next.top)} ${trip.next.topP?.toFixed(2) ?? ''}` }, false)} />}
             {dest && <Marker position={[dest.lat, dest.lng]} icon={hospitalIcon(dest)} />}
             {veh && <Marker position={[veh.lat, veh.lng]} icon={ambulanceIcon({ id: veh.id, heading: veh.heading, priority: trip.priority, quarantined: veh.quarantined })} />}

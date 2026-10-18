@@ -36,11 +36,11 @@ function styleDatasets(type, datasets) {
     }
     if (type === 'bar') {
       const bg = Array.isArray(color) ? color.map(resolveColor) : resolveColor(color || `chart-${(i % 8) + 1}`);
-      return { borderRadius: 4, maxBarThickness: 24, borderSkipped: 'start', ...rest, backgroundColor: bg };
+      return { borderRadius: 4, maxBarThickness: 36, ...rest, backgroundColor: bg };
     }
     const c = resolveColor(color || `chart-${(i % 8) + 1}`);
     return {
-      borderColor: c, backgroundColor: withAlpha(c, 0.1),
+      borderColor: c, backgroundColor: withAlpha(c, 0.14),
       fill: true, tension: 0.4, pointRadius: 0, borderWidth: 2,
       ...rest,
     };
@@ -89,18 +89,15 @@ function buildOptions({ type, legend, yMax, yLabel, stacked, thresholds, options
  *   timeframes  e.g. TIMEFRAMES.intraday; adds a toggle and resamples data
  *   info        show an ⓘ button that opens a detail drawer (uses `subtitle`)
  *   legend, height, yMax, yLabel, stacked, options (extra Chart.js options)
- *   table       { columns: [header…], rows: [[cell…]…] } for the table view;
- *               omitted → derived from labels × datasets
  */
 export default function ChartCard({
   title, subtitle, type = 'line', data, height = 200,
   legend = false, yMax, yLabel, stacked = false, thresholds, timeframes, defaultTimeframe,
-  info = false, actions, options, className = '', table, unit = '',
+  info = false, actions, options, className = '',
 }) {
   const { theme } = useTheme();
   const [tf, setTf] = useState(defaultTimeframe || timeframes?.[timeframes.length - 1]);
   const [showInfo, setShowInfo] = useState(false);
-  const [asTable, setAsTable] = useState(false);
 
   const labels = timeframes && type !== 'doughnut' ? timeframeLabels(tf) : data.labels;
   const datasets = timeframes && type !== 'doughnut'
@@ -115,7 +112,6 @@ export default function ChartCard({
     <>
       {actions}
       <TimeframeToggle options={timeframes} value={tf} onChange={setTf} />
-      <IconButton icon={asTable ? 'barChart' : 'clipboard'} label={asTable ? 'Show chart' : 'Show as table'} plain active={asTable} onClick={() => setAsTable((v) => !v)} />
       {info && <IconButton icon="info" label="Chart details" plain onClick={() => setShowInfo(true)} />}
     </>
   );
@@ -123,13 +119,9 @@ export default function ChartCard({
   return (
     <>
       <Card title={title} subtitle={info ? undefined : subtitle} actions={header} className={className}>
-        {asTable ? (
-          <ChartTable table={table || deriveTable(labels, datasets, unit)} height={height} />
-        ) : (
-          <div style={{ height }}>
-            <Chart key={theme} data={chartData} options={chartOptions} />
-          </div>
-        )}
+        <div style={{ height }}>
+          <Chart key={theme} data={chartData} options={chartOptions} />
+        </div>
         <ThresholdLegend thresholds={thresholds} />
       </Card>
 
@@ -145,31 +137,6 @@ export default function ChartCard({
         </Drawer>
       )}
     </>
-  );
-}
-
-function deriveTable(labels, datasets, unit) {
-  const fmt = (v) => (v == null ? '–' : typeof v === 'number' ? `${Math.round(v * 10) / 10}${unit}` : String(v));
-  if (datasets.length === 1 && !labels) return { columns: ['Value'], rows: datasets[0].data.map((v) => [fmt(v)]) };
-  return {
-    columns: ['', ...datasets.map((d, i) => d.label || `Series ${i + 1}`)],
-    rows: (labels || []).map((l, i) => [l, ...datasets.map((d) => fmt(d.data[i]))]),
-  };
-}
-
-/** Table twin of a chart: every value reachable without hover or colour. */
-export function ChartTable({ table, height }) {
-  return (
-    <div className="overflow-auto" style={{ maxHeight: Math.max(height, 160) }}>
-      <table className="table">
-        <thead><tr>{table.columns.map((c, i) => <th key={i}>{c}</th>)}</tr></thead>
-        <tbody>
-          {table.rows.map((r, i) => (
-            <tr key={i}>{r.map((c, k) => <td key={k} className={k === 0 ? 'cell-strong' : 'tabular-nums'}>{c}</td>)}</tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
   );
 }
 

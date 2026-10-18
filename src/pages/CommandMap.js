@@ -5,13 +5,15 @@ import { Card, Button, Badge, Tabs, Icon, ProgressBar, IconButton } from '../com
 import { useData, useSim } from '../data/DataProvider';
 import { useTheme } from '../theme/ThemeProvider';
 import BaseTiles from '../components/evp/BaseTiles';
+import { resolveColor } from '../components/charts/chartTheme';
 import { junctionIcon, ambulanceIcon, hospitalIcon, ghostIcon, moveGlyph } from '../components/evp/mapIcons';
 import { PriorityBadge, fmtS, fmtTime, STATUS_LABEL, REQUEST_LABEL, SignalHead, MODE_LABEL } from '../components/evp/format';
 import { SCENARIOS } from '../evp/engine/scenarios';
 import { MOVE_LABEL } from '../evp/junctions';
 
 const CENTER = [1.5335, 110.3605];
-const ROUTE_COLOR = { Critical: '#ef4444', Urgent: '#f59e0b', 'Non-urgent': '#38bdf8' };
+// Route lines use the theme's status colours (Leaflet needs concrete values).
+const ROUTE_TONE = { Critical: 'danger', Urgent: 'warning', 'Non-urgent': 'info' };
 
 function FollowVehicle({ position, active }) {
   const map = useMap();
@@ -31,10 +33,10 @@ function RouteLines({ engine, trip }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [engine, trip.id, trip.routeVersion, step]);
   if (!lines) return null;
-  const color = ROUTE_COLOR[trip.priority] || '#38bdf8';
+  const color = resolveColor(ROUTE_TONE[trip.priority] || 'info');
   return (
     <>
-      <Polyline positions={lines.done} pathOptions={{ color: '#64748b', weight: 4, opacity: 0.5 }} />
+      <Polyline positions={lines.done} pathOptions={{ color: resolveColor('neutral'), weight: 4, opacity: 0.5 }} />
       <Polyline positions={lines.todo} pathOptions={{ color, weight: 9, opacity: 0.18 }} />
       <Polyline positions={lines.todo} pathOptions={{ color, weight: 4, opacity: 0.95 }} />
     </>
@@ -195,7 +197,7 @@ export default function CommandMap() {
           <MapContainer center={CENTER} zoom={14} style={{ height: '100%', width: '100%', minHeight: 520 }} preferCanvas={false}>
             <BaseTiles theme={theme} />
             {data.boundary.rings.map((ring, i) => (
-              <Polyline key={`b${i}`} positions={ring} pathOptions={{ color: theme === 'dark' ? '#60a5fa' : '#1b5fc4', weight: 1.5, dashArray: '6 6', opacity: 0.55 }} />
+              <Polyline key={`b${i}`} positions={ring} pathOptions={{ color: resolveColor('primary'), weight: 1.5, dashArray: '6 6', opacity: 0.55 }} />
             ))}
             {snap.trips.map((t) => <RouteLines key={`${t.id}-${t.routeVersion}`} engine={engine} trip={t} />)}
             {data.junctions.map((j) => (
@@ -244,9 +246,9 @@ export default function CommandMap() {
           </MapContainer>
           <div className="absolute left-3 bottom-3 z-[500] card px-3 py-2 text-[10.5px] text-fg-muted space-y-1" style={{ background: 'var(--color-surface)' }}>
             <p className="label-caps">Legend</p>
-            <p className="flex items-center gap-2"><span className="inline-flex gap-0.5">{['#22c55e', '#f59e0b', '#ef4444'].map((c) => <span key={c} className="w-2 h-2 rounded-full" style={{ background: c }} />)}</span>Approach signal (green / amber / red)</p>
-            <p className="flex items-center gap-2"><span className="w-3 h-3 rounded-full border-2" style={{ borderColor: '#3a86f0' }} />Pre-empting · <span className="w-3 h-3 rounded-full border-2 border-dashed" style={{ borderColor: '#f59e0b' }} />Recovery</p>
-            <p className="flex items-center gap-2"><span style={{ color: '#c4b5fd' }}>➜</span>Predicted movement + probability</p>
+            <p className="flex items-center gap-2"><span className="inline-flex gap-0.5">{['var(--signal-green)', 'var(--signal-amber)', 'var(--signal-red)'].map((c) => <span key={c} className="w-2 h-2 rounded-full" style={{ background: c }} />)}</span>Approach signal (green / amber / red)</p>
+            <p className="flex items-center gap-2"><span className="w-3 h-3 rounded-full border-2" style={{ borderColor: 'var(--color-primary)' }} />Pre-empting · <span className="w-3 h-3 rounded-full border-2 border-dashed" style={{ borderColor: 'var(--color-warning)' }} />Recovery</p>
+            <p className="flex items-center gap-2"><span style={{ color: 'var(--color-accent)' }}>➜</span>Predicted movement + probability</p>
             <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={showIdle} onChange={(e) => setShowIdle(e.target.checked)} />Show idle ambulances</label>
           </div>
         </div>

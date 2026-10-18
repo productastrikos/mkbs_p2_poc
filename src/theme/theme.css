@@ -22,10 +22,10 @@
   color-scheme: dark;
 
   /* 1. Brand ─────────────────────────────────────────────── */
-  --color-primary:          #3a86f0;   /* MBKS blue */
-  --color-primary-hover:    #2b74dc;
-  --color-primary-soft:     rgba(58, 134, 240, 0.15);  /* active nav, selected chip */
-  --color-primary-border:   rgba(58, 134, 240, 0.42);
+  --color-primary:          #3b7de8;
+  --color-primary-hover:    #2d6ad4;
+  --color-primary-soft:     rgba(59, 125, 232, 0.14);  /* active nav, selected chip */
+  --color-primary-border:   rgba(59, 125, 232, 0.40);
   --color-on-primary:       #ffffff;                   /* text on primary bg */
 
   --color-accent:           #8b5cf6;                   /* AI / insight features */
@@ -35,12 +35,12 @@
   --color-on-accent:        #ffffff;
 
   /* 2. Surfaces ──────────────────────────────────────────── */
-  --color-bg:               #0b0f17;   /* page background (control-room navy) */
-  --color-sidebar:          #0f1522;
-  --color-header:           #0f1522;
-  --color-surface:          #141b2a;   /* cards, panels, menus */
-  --color-surface-raised:   #1c2537;   /* tiles inside cards, hover rows */
-  --color-input:            #0f1522;
+  --color-bg:               #0e0e10;   /* page background */
+  --color-sidebar:          #17171a;
+  --color-header:           #17171a;
+  --color-surface:          #1c1c20;   /* cards, panels, menus */
+  --color-surface-raised:   #26262b;   /* tiles inside cards, hover rows */
+  --color-input:            #141417;
   --color-overlay:          rgba(0, 0, 0, 0.55);   /* modal backdrop */
   --color-border:           rgba(255, 255, 255, 0.08);
   --color-border-strong:    rgba(255, 255, 255, 0.16);
@@ -75,10 +75,10 @@
   --btn-primary-bg:         var(--color-primary);
   --btn-primary-bg-hover:   var(--color-primary-hover);
   --btn-primary-text:       var(--color-on-primary);
-  --btn-primary-shadow:     0 2px 10px rgba(58, 134, 240, 0.25);
+  --btn-primary-shadow:     0 2px 10px rgba(59, 125, 232, 0.25);
 
   --btn-secondary-bg:       var(--color-surface-raised);
-  --btn-secondary-bg-hover: #253048;
+  --btn-secondary-bg-hover: #303036;
   --btn-secondary-text:     var(--color-text);
   --btn-secondary-border:   var(--color-border-strong);
 
@@ -105,22 +105,18 @@
   --tile-radius:            10px;
 
   /* 7. Charts ────────────────────────────────────────────── */
-  /* Categorical order validated for colour-vision deficiency (adjacent
-     CVD ΔE ≥ 8) on this surface. Keep the order; don't cycle past 8. */
-  --chart-1:                #3987e5;   /* blue */
-  --chart-2:                #d95926;   /* orange */
-  --chart-3:                #199e70;   /* aqua */
-  --chart-4:                #c98500;   /* yellow */
-  --chart-5:                #d55181;   /* magenta */
-  --chart-6:                #008300;   /* green */
-  --chart-7:                #9085e9;   /* violet */
-  --chart-8:                #e66767;   /* red */
-  --chart-muted:            #5b6678;   /* de-emphasised comparison series */
-  --chart-grid:             rgba(255, 255, 255, 0.06);
-  --chart-tick:             #8a9bb2;
-  --chart-tooltip-bg:       #141b2a;
-  --chart-tooltip-border:   #2b364d;
-  --chart-seq-rgb:          57, 135, 229;  /* sequential blue (heatmaps) */
+  --chart-1:                #3b7de8;
+  --chart-2:                #ec4899;
+  --chart-3:                #14b8a6;
+  --chart-4:                #f59e0b;
+  --chart-5:                #8b5cf6;
+  --chart-6:                #0ea5e9;
+  --chart-7:                #a3e635;
+  --chart-8:                #94a3b8;
+  --chart-grid:             rgba(255, 255, 255, 0.05);
+  --chart-tick:             #8196ad;
+  --chart-tooltip-bg:       #1c1c20;
+  --chart-tooltip-border:   #33333a;
 
   /* 8. Layout ────────────────────────────────────────────── */
   --font-sans:              'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -131,21 +127,16 @@
   --radius-md:              10px;
   --radius-lg:              14px;
   --shadow-lg:              0 8px 30px rgba(0, 0, 0, 0.40);
-
-  /* Signals (traffic-light states: fixed, not themed) */
-  --signal-green:           #22c55e;
-  --signal-amber:           #f59e0b;
-  --signal-red:             #ef4444;
 }
 
 :root[data-theme='light'] {
   color-scheme: light;
 
   /* 1. Brand */
-  --color-primary:          #1b5fc4;   /* MBKS blue */
-  --color-primary-hover:    #154fa6;
-  --color-primary-soft:     rgba(27, 95, 196, 0.10);
-  --color-primary-border:   rgba(27, 95, 196, 0.35);
+  --color-primary:          #2f6fdb;
+  --color-primary-hover:    #245bc0;
+  --color-primary-soft:     rgba(47, 111, 219, 0.10);
+  --color-primary-border:   rgba(47, 111, 219, 0.35);
   --color-accent:           #7c3aed;
   --color-accent-hover:     #6d28d9;
   --color-accent-soft:      rgba(124, 58, 237, 0.09);
@@ -186,7 +177,7 @@
   --color-neutral-border:   rgba(100, 116, 139, 0.28);
 
   /* 5. Buttons */
-  --btn-primary-shadow:     0 2px 8px rgba(27, 95, 196, 0.22);
+  --btn-primary-shadow:     0 2px 8px rgba(47, 111, 219, 0.22);
   --btn-secondary-bg:       #ffffff;
   --btn-secondary-bg-hover: #f3f6fb;
   --btn-danger-bg-hover:    #991b1b;
@@ -196,16 +187,7 @@
   --card-hover-shadow:      0 6px 20px rgba(15, 35, 75, 0.10);
 
   /* 7. Charts */
-  --chart-1:                #2a78d6;
-  --chart-2:                #eb6834;
-  --chart-3:                #1baf7a;
-  --chart-4:                #eda100;
-  --chart-5:                #e87ba4;
-  --chart-6:                #008300;
-  --chart-7:                #6250d6;
-  --chart-8:                #e34948;
-  --chart-muted:            #a3adbd;
-  --chart-seq-rgb:          42, 120, 214;
+  --chart-1:                #2f6fdb;
   --chart-grid:             rgba(15, 35, 75, 0.07);
   --chart-tick:             #64748b;
   --chart-tooltip-bg:       #ffffff;
@@ -213,4 +195,20 @@
 
   /* 8. Layout */
   --shadow-lg:              0 8px 30px rgba(15, 35, 75, 0.14);
+}
+
+/* ─── GreenLight EVP additions ──────────────────────────────────────────
+   New tokens only, mapped onto the palette above (nothing above is
+   overridden). Traffic-signal lamps use the status colours; heatmaps use
+   the primary blue as a single-hue sequential scale. */
+:root,
+:root[data-theme='dark'] {
+  --signal-green:           var(--color-success);
+  --signal-amber:           var(--color-warning);
+  --signal-red:             var(--color-danger);
+  --chart-seq-rgb:          59, 125, 232;   /* = --color-primary */
+}
+
+:root[data-theme='light'] {
+  --chart-seq-rgb:          47, 111, 219;   /* = --color-primary (light) */
 }
