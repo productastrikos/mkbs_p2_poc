@@ -1,337 +1,125 @@
-# Enterprise Admin Dashboard — UI Template
+# GreenLight EVP
 
-A production-ready, fully self-contained React admin dashboard template. No backend, no API, no authentication required — all data is static and bundled with the frontend.
+GreenLight EVP is a working prototype of AI-assisted Emergency Vehicle Pre-emption for **Majlis Bandaraya Kuching Selatan (MBKS)**, Sarawak. It runs on MBKS's existing SCATS signal controllers. The app predicts when an ambulance will reach each junction and which way it will turn. It then asks SCATS for the right green about 15 s before arrival, keeps every transition safe (pedestrians, amber, all-red, maximum hold), and hands control back to SCATS so queues recover.
 
----
+Everything runs in the browser: a simulation of 22 Kuching South junctions on the real OpenStreetMap road network, in-browser machine learning, and a simulated SCATS adapter. A small Node endpoint adds Claude for reports and the operator assistant.
 
-## Tech Stack
+**Stack:** React 18 (Create React App), React Router 6, Tailwind CSS 3, Leaflet / react-leaflet with OpenStreetMap data and tiles, Chart.js 4, the Anthropic SDK (`@anthropic-ai/sdk`) on the server.
 
-| Layer | Technology |
-|---|---|
-| Framework | React 18 (Create React App) |
-| Routing | React Router v6 |
-| Charts | Chart.js 4 + react-chartjs-2 |
-| Map | React-Leaflet + Leaflet |
-| Styling | Tailwind CSS 3 + CSS custom properties |
-| Data | Static seed data (no server) |
-
----
-
-## Pages
-
-| Route | Page | Description |
-|---|---|---|
-| `/` | Dashboard | KPI cards, charts, segment overview, Digital Twin preview |
-| `/operations` | Operations | Records, assets, and inventory (3 tabs) |
-| `/analytics` | Analytics | Performance reports, workflow pipeline, system monitor (3 tabs) |
-| `/services` | Services | Request management table and charts |
-| `/map` | Digital Twin | Full-page interactive map with layer toggles |
-
----
-
-## Project Structure
-
-```
-client/
-  src/
-    App.js               # Routes + static user
-    index.css            # Design tokens, theme, component CSS
-    components/
-      Layout.js          # Sidebar, header, alert + advisory panels
-      KPICard.js         # KPI card component
-      KPIDetailModal.js  # KPI drill-down modal
-      AdvisoryPanel.js   # AI advisory slide-out panel
-      AlertPanel.js      # Real-time alerts slide-out panel
-      ZoneFilterBar.js   # Segment filter pill bar
-      chartUtils.js      # Chart tokens, timeframe control, helpers
-    pages/
-      Dashboard.js       # Main overview page
-      Operations.js      # 3-tab operations page
-      Analytics.js       # 3-tab analytics page
-      CitizenServices.js # Services/requests page
-      DigitalTwin.js     # Full-page map view
-    services/
-      socket.js          # Static data context provider
-      api.js             # Static API stubs
-```
-
----
-
-## Quick Start
+## Quick start
 
 ```bash
-# Install dependencies
-cd client && npm install
-
-# Start development server (http://localhost:3000)
-npm start
-```
-
-Or from the project root:
-
-```bash
-npm run dev      # starts client dev server
-npm run build    # produces client/build/
-```
-
----
-
-## Customisation
-
-**Retheming** — all colours are CSS custom properties in `client/src/index.css`. Change `--app-panel`, `--app-accent`, and `--app-advisory` to instantly retheme every component.
-
-**KPI values** — edit the `SEED_KPIS` and `SEED_BINS_SUMMARY` objects in `client/src/services/socket.js`.
-
-**Navigation labels** — update `NAV_SECTIONS` and `PAGE_TITLES` in `client/src/components/Layout.js`.
-
-**Static advisories / alerts** — edit `STATIC_ADVISORIES` in `AdvisoryPanel.js` and `SEED_ALERTS` in `socket.js`.
-
-┌─────────────────────────────────────────────────────────┐
-│                    React Frontend                        │
-│  Dashboard │ Collection │ Fleet │ WTE │ Digital Twin     │
-│  Processing │ Landfills │ Sustainability │ Enterprise    │
-├─────────────────────────────────────────────────────────┤
-│               Socket.io (Real-time)                      │
-├─────────────────────────────────────────────────────────┤
-│                 Express.js Backend                        │
-│  REST API │ Simulation Engine │ AI Advisory Engine        │
-├─────────────────────────────────────────────────────────┤
-│           In-Memory Data Store (No DB required)          │
-└─────────────────────────────────────────────────────────┘
-```
-
-## 🚀 Quick Start
-
-### Prerequisites
-- **Node.js** 18+ (https://nodejs.org)
-- **npm** 9+
-
-### Installation
-
-```bash
-# 1. Navigate to project root
-cd wastemanagement_SL
-
-# 2. Install root dependencies (concurrently)
 npm install
-
-# 3. Install all dependencies (server + client)
-npm run install:all
+npm start            # http://localhost:3000 (dev server + LLM API)
 ```
 
-### Running the Platform
+The app boots in about 3 s. It loads the data, trains the three models in the browser and starts the 22 SCATS controllers.
+
+**Claude (optional).** Create `.env.local` in the project root:
+
+```
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+Then restart `npm start`. The key stays on the server (`server/llm.js`) and is never sent to the browser. Without a key, the AI Assistant page uses offline templates and rule-based answers, and says so.
+
+**Production build:**
 
 ```bash
-# Start both server and client concurrently
-npm run dev
+npm run build
+npm run serve        # serves build/ and /api/llm on http://localhost:3000
 ```
 
-Or run them separately:
+## Demo walkthrough
+
+| Goal | Where | What to do |
+|---|---|---|
+| START an ambulance to SGH | **Ambulance Tablet** | Sign in (any 4-digit PIN), choose *To hospital* → Sarawak General Hospital, *Critical*, press **START EVP**. The status card counts down "Green in N s" and turns green before arrival. Or use **Scenarios → SGH run** on the Command Map. |
+| Watch the corridor | **Live Command Map** | Animated ambulances, route corridor, junction signal states, predicted movement arrows and ETA with its confidence band. Speed up the clock with 2×/4×/8×. |
+| Check the safe sequence | **Junctions → a junction** | SCATS phase diagram, the pre-emption timeline (request → amber 3 s → all-red 2 s → green hold → release → recovery), safety checklist, queue chart, SCATS adapter log. |
+| Two converging ambulances | **Scenarios → Two-ambulance conflict** | A Critical and an Urgent ambulance converge on one junction. Critical gets the green; Urgent is shown "HOLD: yielding" and gets its green after. |
+| Spoofed GPS / unregistered vehicle | **Alerts & Security** (or Scenarios) | Inject a 1.1 km GPS jump, an unregistered OBU, requests outside a trip, or a trip with no patient status. Each is blocked, flagged and, where needed, quarantined. The operator can acknowledge or reinstate. |
+| Time saved and rollout | **Analytics** | Seconds saved per trip against the no-EVP baseline, before/after by month, junction delay heatmap, the 22-junction rollout ranking, cost/benefit against the RM2.0M budget, model learning log. |
+| Post-trip report | **AI Assistant** | Pick a trip (live trips appear first) → **Generate report**. Monthly summaries for JKR / JKNS / PDRM and the operator chat are on the same page. |
+
+`npm run check` runs the same acceptance checks headlessly in Node (SGH run, conflict, spoofing, unregistered vehicle, misuse, stop/divert cancel, analytics, offline report). The last run passed 19/19.
+
+## How it works
+
+### AI core (`src/evp/`)
+
+| # | Component | Implementation |
+|---|---|---|
+| 1 | **Junction ETA prediction** | Gradient-boosted regression trees (`ml/gbrt.js`, 110 trees, depth 4). Features: distance to stop line, speed, acceleration, hour, day of week, rain, live junction congestion (0–1), approach lanes, ambulance status. A second GBRT predicts the expected error and is calibrated so 80% of held-out errors fall inside the band. Re-predicted every 2 s for each upcoming junction. |
+| 2 | **Movement / phase prediction** | Softmax regression over Left / Straight / Right / U-turn (`ml/softmax.js`): planned route move, route alternatives and cost gap, lane, distance, heading. If the top movement has P ≥ 0.8, the engine requests the phase serving it. Otherwise it requests a phase that covers the two most likely movements (`engine/decision.js → choosePhase`). |
+| 3 | **Pre-emption decision engine** | `engine/decision.js` + `scats/controller.js`. It requests when ETA ≤ phase clearance + 15 s. A pedestrian green is never cut mid-crossing, and new pedestrian calls are held once an approach is announced. Every change uses 3 s amber + 2 s all-red, and holds stop at 45 s. A request is cancelled if the ambulance stops or diverts for more than 20 s. Conflicts go Critical > Urgent > Non-urgent, then nearest ETA. After release, SCATS adaptive control recovers over 1–2 cycles. |
+| 4 | **Authorisation & anomaly guard** | `engine/guard.js` + `ml/isolationForest.js`. Only registered OBUs on an active trip (START pressed) with a patient status may request a green. Rules flag jumps above 150 km/h, fixes more than 60 m off the road network and repeated requests outside a trip; an isolation forest scores every fix. Requests are blocked, units quarantined, and the operator is alerted. |
+| 5 | **Corridor analytics & learning** | `analytics.js`. After each trip, predicted ETA is compared with actual arrival and both models are retrained on history + live trips (see Analytics → Models & learning). Time saved is measured against a *shadow* SCATS controller that is never pre-empted, using the same traffic. The page also reports conflicting movements avoided, fuel and idle time saved, and ranks junctions by delay exposure and collision risk for the 22-junction rollout. |
+
+### Generative AI (`server/llm.js`)
+
+- **Post-trip report**, **monthly stakeholder summary** (JKR / JKNS / PDRM) and an **operator chat assistant**, all from structured facts: the trip record or an analytics digest. Prompts tell the model to use only those facts.
+- Model `claude-opus-5-5`, streamed. Chat uses `effort: low`; reports use `medium`.
+- **Refusal fallback is enabled:** requests send `fallbacks: "default"` (beta `server-side-fallback-2026-07-01`). If the model declines, the API re-runs the request on Anthropic's recommended fallback model in the same call.
+- `GET /api/llm/status` checks the key with a model lookup. The UI falls back to offline templates when no key is set or a call fails.
+
+### SCATS adapter (`src/evp/scats/ScatsAdapter.js`)
+
+The decision engine reaches the signals only through this interface. To integrate with MBKS's real SCATS controllers and roadside units, replace `SimulatedScatsAdapter` with an implementation such as the `RemoteScatsAdapter` stub.
+
+```js
+notifyApproach(junctionId, { vehicleId, etaS })          // ETA ≤ 60 s: hold new pedestrian calls
+requestPhase(junctionId, phaseId, { requestId, vehicleId, priority, arm, moves, etaS })
+holdPhase(junctionId, requestId, holdS)                  // re-sent while approaching; 45 s cap enforced by controller
+release(junctionId, requestId, reason)                   // hand back to SCATS adaptive
+getStatus(junctionId)                                    // mode, phase, stage, queues, pre-emption timeline
+clearanceTime(junctionId, phaseId, arm, moves)           // seconds to a safe switch right now
+```
+
+The engine reads outcomes from `getStatus()` on its next tick, so a network implementation can be asynchronous.
+
+## Data
+
+`public/data/` is generated by the scripts and committed, so `npm start` works offline.
+
+| File | Contents | Source |
+|---|---|---|
+| `network.json` | Routable road graph (≈2,900 nodes, 4,000 links) for Kuching South | OpenStreetMap via Overpass |
+| `junctions.json` | 22 signalised junctions on real Kuching South roads, incl. Jalan Simpang Tiga / Jalan Tabuan / Jalan Mendu (proof-of-concept site, J16). Each has SCATS phase plans, timings, hourly congestion profiles and incident counts. | OSM signal locations; phase plans, timings, congestion and incidents are prototype assumptions |
+| `hospitals.json` | SGH, Borneo Medical Centre, KPJ Kuching, Timberland Medical Centre | OSM (KPJ location approximate) |
+| `ambulances.json` | 20 ambulances with OBU IDs, plates, bases and operators | Mock |
+| `trips.json`, `gps-fixes.json` | 500 historical trips (Apr–Oct 2026) with GPS traces, timestamps and junction waits; 8,000 GPS fixes for the anomaly model | Generated by running the simulation headlessly |
+
+Regenerate:
 
 ```bash
-# Terminal 1 - Backend (port 5000)
-cd server && npm run dev
-
-# Terminal 2 - Frontend (port 3000)
-cd client && npm start
+npm run data         # fetch OSM (cached in scripts/osm-cache) and build network/junction data
+npm run data:trips   # regenerate the 500 historical trips
+npm run check        # acceptance checks
 ```
 
-### Access
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:5000/api
+Map data and tiles © OpenStreetMap contributors (ODbL). For production use, move to a tile provider or self-hosted tiles, as the OSM tile usage policy requires.
 
-### Netlify Deployment
-
-The project is prepared for a Netlify full-stack deployment using Netlify static hosting for the React frontend and a Netlify Function wrapper for the Express API.
-
-1. Deploy the repository root to Netlify.
-2. Use `npm run build:netlify` as the build command.
-3. Use `client/build` as the publish directory.
-4. Backend requests to `/api/*` are routed to the Netlify function automatically.
-5. Add these environment variables in Netlify:
-
-```bash
-JWT_SECRET=replace-this-with-a-secure-random-secret
-REACT_APP_REALTIME_MODE=polling
-```
-
-Notes:
-- `netlify.toml` is already included at the repository root.
-- SPA route refreshes are handled by the included redirect rules.
-- Socket.io does not run persistently on Netlify Functions, so the client uses polling mode in production.
-- The simulation remains in-memory. In a serverless environment that means state can reset on cold starts, which is acceptable for demo deployment but not durable persistence.
-
-### Demo Credentials
-
-| Role         | Username    | Password     |
-|--------------|-------------|------------- |
-| Admin        | admin       | admin123     |
-| Operator     | operator    | operator123  |
-| Analyst      | analyst     | analyst123   |
-| Field Worker | fieldworker | field123     |
-
----
-
-## 📋 Platform Modules
-
-### 1. Command Dashboard
-- 6 real-time KPI cards (Collection, Recycling, Fleet, WTE, Landfill, Carbon)
-- Trend charts, waste composition, zone comparisons
-- Zone performance table, activity feed
-- Real-time weather integration
-
-### 2. Waste Collection
-- 400+ smart bin monitoring with fill levels, temperature, type
-- Zone-based filtering and sorting
-- Scheduled collection actions
-- Zone-level fill comparison charts
-
-### 3. Fleet Management
-- 45 vehicle real-time tracking (compactors, mini trucks, hook lifts)
-- Status monitoring: active, en route, collecting, idle, maintenance
-- Fuel levels, load capacity, speed
-- Dispatch controls
-
-### 4. WTE Plant (Kerawalapitiya)
-- Power output, daily intake, efficiency gauges
-- Furnace unit monitoring (3 units)
-- Emission tracking (CO₂, SO₂, NOₓ, PM, Dioxins)
-- 24-hour power output trends
-
-### 5. Processing & Recycling
-- Transfer stations, recycling centers, composting facilities
-- Material recovery distribution
-- Throughput and utilization tracking
-
-### 6. Landfill Management
-- Aruwakkalu and Karadiyana monitoring
-- Capacity utilization, intake tracking
-- Environmental monitoring (methane, groundwater, odor)
-- Remaining lifespan projections
-
-### 7. Sustainability & ESG
-- Carbon score, waste diversion rate, CO₂ reduction tracking
-- Circular economy breakdown
-- Environmental Performance Index
-- UN SDG alignment scores (Goals 6, 7, 11, 12, 13)
-
-### 8. Enterprise Modules
-- **HR**: Staff count, attendance, field workers, hiring
-- **Finance**: Budget tracking, revenue, spend analysis
-- **Procurement**: PO management, vendor tracking, savings
-- **IT & Security**: System infrastructure
-- **Legal & Compliance**: Regulatory compliance
-- **ESG Reporting**: Environmental reporting
-- **Citizen Services**: Complaint management, resolution tracking
-
-### 9. Digital Twin (Leaflet Map)
-- Interactive dark-themed map of Colombo
-- Real-time bin positions with fill-level color coding
-- Vehicle tracking with status indicators
-- Facility locations with type icons
-- Layer toggle controls
-- Entity click-to-detail panels
-
----
-
-## 🧠 AI Advisory Engine
-
-The platform includes a rule-based advisory engine that generates contextual operational recommendations:
-
-- **Overflow Cluster Detection**: Identifies zones with high bin overflow rates
-- **Low Collection Rate**: Flags underperforming collection zones
-- **Landfill Pressure**: Monitors capacity thresholds
-- **WTE Optimization**: Suggests furnace and intake adjustments
-- **Segregation Improvement**: Recommends waste sorting interventions
-- **Fleet Maintenance**: Predictive maintenance advisories
-- **Weather Impact**: Rainfall and heat-related operational adjustments
-- **Cost Optimization**: Budget and efficiency recommendations
-- **Emission Compliance**: Regulatory threshold monitoring
-- **Circular Economy**: Material recovery and recycling suggestions
-
-Each advisory includes root cause analysis (3-layer), evidence, actionable recommendations, projected impact, and executable action buttons.
-
----
-
-## 🔧 Data Simulation
-
-The simulation engine generates realistic data for all 15 Colombo zones:
-
-- **Hourly patterns**: Peak waste generation at 8AM, 12PM, 6PM
-- **Weekly cycles**: Weekday vs weekend variation
-- **Monthly trends**: Monsoon, festival, and seasonal effects
-- **Weather correlation**: Rainfall reduces collection efficiency
-- **Festival calendar**: Vesak, Poson, Christmas, New Year multipliers
-- **Random events**: Equipment failures, road blocks, sudden demand spikes
-- **Traffic patterns**: Zone-specific congestion multipliers
-
-### Colombo Zones Modeled
-Fort, Pettah, Borella, Maradana, Grandpass, Dematagoda, Kotahena, Mattakkuliya, Modara, Slave Island, Kollupitiya, Bambalapitiya, Wellawatte, Dehiwala, Mount Lavinia
-
----
-
-## 🛠️ Tech Stack
-
-| Layer       | Technology                                    |
-|-------------|-----------------------------------------------|
-| Frontend    | React 18, Tailwind CSS, Chart.js, Leaflet     |
-| Backend     | Node.js, Express.js                           |
-| Real-time   | Socket.io                                     |
-| Auth        | JWT + bcryptjs                                |
-| Maps        | Leaflet + CARTO dark tiles                    |
-| Charts      | Chart.js + react-chartjs-2                    |
-
----
-
-## 📁 Project Structure
+## Project structure
 
 ```
-wastemanagement_SL/
-├── package.json              # Root monorepo config
-├── README.md
-├── server/
-│   ├── package.json
-│   ├── .env                  # Server configuration
-│   ├── index.js              # Express server + Socket.io + all routes
-│   ├── models.js             # Mongoose schemas (reference)
-│   ├── simulation.js         # Data simulation engine
-│   └── aiAdvisory.js         # AI advisory engine
-├── client/
-│   ├── package.json
-│   ├── tailwind.config.js
-│   ├── postcss.config.js
-│   ├── public/
-│   │   └── index.html
-│   └── src/
-│       ├── index.js
-│       ├── index.css           # Tailwind + custom styles
-│       ├── App.js              # Router & auth
-│       ├── services/
-│       │   ├── api.js          # Axios API service
-│       │   └── socket.js       # Socket.io context
-│       ├── components/
-│       │   ├── Layout.js       # Main layout shell
-│       │   ├── AlertPanel.js   # Real-time alerts
-│       │   └── AdvisoryPanel.js # AI advisories
-│       └── pages/
-│           ├── Login.js
-│           ├── Dashboard.js
-│           ├── WasteCollection.js
-│           ├── FleetManagement.js
-│           ├── WTEPlant.js
-│           ├── Processing.js
-│           ├── Landfills.js
-│           ├── Sustainability.js
-│           ├── Enterprise.js
-│           └── DigitalTwin.js
+src/
+  evp/                    simulation + AI core (plain ES modules, also run by the Node scripts)
+    engine/               simulation.js, decision.js, guard.js, scenarios.js
+    scats/                controller.js (simulated SCATS junction), ScatsAdapter.js
+    ml/                   gbrt.js, softmax.js, isolationForest.js, models.js
+    analytics.js          KPIs, before/after, rollout ranking, cost/benefit, LLM digest
+    reports.js            LLM payloads and offline report templates
+  pages/                  CommandMap, Tablet, Junctions, JunctionDetail, Analytics, Security, Assistant
+  components/evp/         phase diagram, pre-emption timeline, map icons, Markdown renderer
+  data/DataProvider.js    boot, model training, simulation loop, retraining
+  setupProxy.js           mounts the LLM API on the dev server
+server/                   llm.js (Claude endpoints), index.js (production server)
+scripts/                  data fetch/build, trip generator, acceptance checks
 ```
 
----
+## Limitations
 
-## ⚠️ Notes
-
-- The platform runs entirely **in-memory** — no MongoDB installation required
-- Data is generated fresh on each server restart via the simulation engine
-- All GPS coordinates use real Colombo ward locations
-- The WTE plant model is based on the Kerawalapitiya facility specifications
-- Landfill data reflects Aruwakkalu and Karadiyana site characteristics
+- Traffic, signal timings, incidents and trip history are simulated. Results are indicative until they are calibrated against MBKS SCATS logs and real ambulance GPS data.
+- Cost/benefit leaves out the clinical value of faster arrival. Its assumptions can be edited on the Analytics page.
+- The KPJ Kuching location is approximate.

@@ -1,0 +1,395 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.11 87bfad18",
+  "osm3s": {
+    "timestamp_osm_base": "2026-10-15T11:53:58Z",
+    "timestamp_areas_base": "2026-10-14T11:21:03Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+
+{
+  "type": "node",
+  "id": 2415475834,
+  "lat": 1.4896462,
+  "lon": 110.3511616,
+  "tags": {
+    "amenity": "fire_station",
+    "fire_station:type": "airport",
+    "name": "AFRS"
+  }
+},
+{
+  "type": "node",
+  "id": 12243137489,
+  "lat": 1.5328456,
+  "lon": 110.3908106,
+  "tags": {
+    "amenity": "fire_station"
+  }
+},
+{
+  "type": "node",
+  "id": 12347482058,
+  "lat": 1.5451021,
+  "lon": 110.3625716,
+  "tags": {
+    "amenity": "clinic",
+    "healthcare": "clinic",
+    "name": "Klinik Kesihatan Ibu Dan Anak Sekama",
+    "operator": "Kementerian Kesihatan Malaysia",
+    "operator:short": "KKM",
+    "operator:wikidata": "Q4294352"
+  }
+},
+{
+  "type": "node",
+  "id": 13315573648,
+  "lat": 1.4790375,
+  "lon": 110.3380327,
+  "tags": {
+    "name": "Kuarters Meteorologi Kuching",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 13989102124,
+  "lat": 1.5045875,
+  "lon": 110.3673287,
+  "tags": {
+    "name": "Kampung Stampin",
+    "place": "quarter"
+  }
+},
+{
+  "type": "node",
+  "id": 13989102125,
+  "lat": 1.5026407,
+  "lon": 110.3712483,
+  "tags": {
+    "name": "Stutong Baru",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 13989102126,
+  "lat": 1.5049116,
+  "lon": 110.3605671,
+  "tags": {
+    "name": "Saradise",
+    "place": "quarter"
+  }
+},
+{
+  "type": "node",
+  "id": 13989102127,
+  "lat": 1.5046090,
+  "lon": 110.3551477,
+  "tags": {
+    "name": "BDC",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 13989102128,
+  "lat": 1.5004082,
+  "lon": 110.3486321,
+  "tags": {
+    "name": "Lapangan Terbang",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 13989102129,
+  "lat": 1.4964815,
+  "lon": 110.3398111,
+  "tags": {
+    "name": "Stampin Tengah",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 13989102130,
+  "lat": 1.4900848,
+  "lon": 110.3308392,
+  "tags": {
+    "name": "Ketek",
+    "place": "quarter"
+  }
+},
+{
+  "type": "node",
+  "id": 13989102131,
+  "lat": 1.5050633,
+  "lon": 110.3801457,
+  "tags": {
+    "name": "Stutong",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 13989102132,
+  "lat": 1.4976121,
+  "lon": 110.3814257,
+  "tags": {
+    "name": "Stampin Baru",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 13989102133,
+  "lat": 1.5138280,
+  "lon": 110.3795837,
+  "tags": {
+    "name": "Setia Raja",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 13991115048,
+  "lat": 1.5098460,
+  "lon": 110.3923987,
+  "tags": {
+    "name": "Northbank",
+    "place": "quarter"
+  }
+},
+{
+  "type": "node",
+  "id": 13991115049,
+  "lat": 1.5186567,
+  "lon": 110.3913831,
+  "tags": {
+    "name": "Tabuan Tranquility",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 13991115050,
+  "lat": 1.5244210,
+  "lon": 110.3954917,
+  "tags": {
+    "name": "Muara Tabuan",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 13991115051,
+  "lat": 1.5396828,
+  "lon": 110.3841277,
+  "tags": {
+    "name": "Kampung Tabuan Melayu",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 13991115052,
+  "lat": 1.5392185,
+  "lon": 110.3910707,
+  "tags": {
+    "name": "Kampung Tabuan Hilir",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 13991115053,
+  "lat": 1.5288973,
+  "lon": 110.3815719,
+  "tags": {
+    "name": "Keranji",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 13991115054,
+  "lat": 1.5328538,
+  "lon": 110.3762892,
+  "tags": {
+    "name": "Bayor Bukit",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 13991115055,
+  "lat": 1.5184074,
+  "lon": 110.3746028,
+  "tags": {
+    "name": "Kedandi",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 13991115056,
+  "lat": 1.5215624,
+  "lon": 110.3672111,
+  "tags": {
+    "name": "Urat Mata",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 14000659272,
+  "lat": 1.5347062,
+  "lon": 110.3859021,
+  "tags": {
+    "name": "Tabuan Park 2",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 14000659273,
+  "lat": 1.5348137,
+  "lon": 110.3880002,
+  "tags": {
+    "name": "Tabuan Park",
+    "place": "quarter"
+  }
+},
+{
+  "type": "node",
+  "id": 14000659274,
+  "lat": 1.5393349,
+  "lon": 110.3871546,
+  "tags": {
+    "name": "Kampung Tabuan Tengah",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 14000659275,
+  "lat": 1.5399369,
+  "lon": 110.3823094,
+  "tags": {
+    "name": "Kampung Tabuan Lot",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 14000659276,
+  "lat": 1.5399036,
+  "lon": 110.3797687,
+  "tags": {
+    "name": "Kampung Tabuan Lot",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 14000659277,
+  "lat": 1.5686380,
+  "lon": 110.3834127,
+  "tags": {
+    "name": "Kampung Bintawa",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 14000663511,
+  "lat": 1.5728247,
+  "lon": 110.3745726,
+  "tags": {
+    "name": "Residensi Bintawa Riverfront",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 14000663535,
+  "lat": 1.5728995,
+  "lon": 110.3783897,
+  "tags": {
+    "name": "Taman Riverview",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "way",
+  "id": 272512932,
+  "center": {
+    "lat": 1.5340602,
+    "lon": 110.3456525
+  },
+  "tags": {
+    "amenity": "fire_station",
+    "building": "yes",
+    "name": "Batu Lintang Fire & Rescue Station"
+  }
+},
+{
+  "type": "way",
+  "id": 352236498,
+  "center": {
+    "lat": 1.5079302,
+    "lon": 110.3516954
+  },
+  "tags": {
+    "landuse": "residential",
+    "name": "Taman Perumahan Persekutuan Stampin"
+  }
+},
+{
+  "type": "way",
+  "id": 356883803,
+  "center": {
+    "lat": 1.5510362,
+    "lon": 110.3802502
+  },
+  "tags": {
+    "amenity": "clinic",
+    "healthcare": "clinic",
+    "name": "Klinik Kesihatan Tanah Putih",
+    "operator": "Kementerian Kesihatan Malaysia",
+    "operator:short": "KKM",
+    "operator:wikidata": "Q4294352",
+    "operator:wikipedia": "en:Ministry of Health (Malaysia)"
+  }
+},
+{
+  "type": "way",
+  "id": 1388131130,
+  "center": {
+    "lat": 1.5530909,
+    "lon": 110.3584948
+  },
+  "tags": {
+    "amenity": "fire_station",
+    "name": "Kuching Fire Station"
+  }
+},
+{
+  "type": "way",
+  "id": 1536915246,
+  "center": {
+    "lat": 1.5729485,
+    "lon": 110.3782585
+  },
+  "tags": {
+    "addr:city": "Kuching",
+    "addr:postcode": "93450",
+    "landuse": "residential",
+    "name": "Taman Riverview"
+  }
+}
+
+  ]
+}

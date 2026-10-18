@@ -1,0 +1,216 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   THEME TOKENS: the only file you need to edit to re-brand the app.
+
+   Every component reads these variables, so changing a value here
+   updates it everywhere. Dark mode is the default; light mode
+   overrides are in the second block.
+
+   Tokens are grouped as:
+     1. Brand         primary / accent colours
+     2. Surfaces      page, sidebar, header, cards, inputs
+     3. Text
+     4. Status        success / warning / danger / info
+     5. Buttons       every button variant
+     6. Cards         background, border, radius, padding, shadow
+     7. Charts        series palette + chart chrome
+     8. Layout        sizes, radii, font
+   Chart colours must be hex values (they are read by canvas code).
+   ═══════════════════════════════════════════════════════════════════════ */
+
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* 1. Brand ─────────────────────────────────────────────── */
+  --color-primary:          #3a86f0;   /* MBKS blue */
+  --color-primary-hover:    #2b74dc;
+  --color-primary-soft:     rgba(58, 134, 240, 0.15);  /* active nav, selected chip */
+  --color-primary-border:   rgba(58, 134, 240, 0.42);
+  --color-on-primary:       #ffffff;                   /* text on primary bg */
+
+  --color-accent:           #8b5cf6;                   /* AI / insight features */
+  --color-accent-hover:     #7c3aed;
+  --color-accent-soft:      rgba(139, 92, 246, 0.14);
+  --color-accent-border:    rgba(139, 92, 246, 0.40);
+  --color-on-accent:        #ffffff;
+
+  /* 2. Surfaces ──────────────────────────────────────────── */
+  --color-bg:               #0b0f17;   /* page background (control-room navy) */
+  --color-sidebar:          #0f1522;
+  --color-header:           #0f1522;
+  --color-surface:          #141b2a;   /* cards, panels, menus */
+  --color-surface-raised:   #1c2537;   /* tiles inside cards, hover rows */
+  --color-input:            #0f1522;
+  --color-overlay:          rgba(0, 0, 0, 0.55);   /* modal backdrop */
+  --color-border:           rgba(255, 255, 255, 0.08);
+  --color-border-strong:    rgba(255, 255, 255, 0.16);
+
+  /* 3. Text ──────────────────────────────────────────────── */
+  --color-text:             #e8eef5;
+  --color-text-muted:       #afc3d8;
+  --color-text-faint:       #8196ad;
+  --color-sidebar-text:     #cfd8e3;
+
+  /* 4. Status ────────────────────────────────────────────── */
+  --color-success:          #22c55e;
+  --color-success-soft:     rgba(34, 197, 94, 0.14);
+  --color-success-border:   rgba(34, 197, 94, 0.32);
+  --color-warning:          #f59e0b;
+  --color-warning-soft:     rgba(245, 158, 11, 0.14);
+  --color-warning-border:   rgba(245, 158, 11, 0.32);
+  --color-danger:           #ef4444;
+  --color-danger-soft:      rgba(239, 68, 68, 0.14);
+  --color-danger-border:    rgba(239, 68, 68, 0.32);
+  --color-info:             #0ea5e9;
+  --color-info-soft:        rgba(14, 165, 233, 0.14);
+  --color-info-border:      rgba(14, 165, 233, 0.32);
+  --color-neutral:          #94a3b8;
+  --color-neutral-soft:     rgba(148, 163, 184, 0.14);
+  --color-neutral-border:   rgba(148, 163, 184, 0.30);
+
+  /* 5. Buttons ───────────────────────────────────────────── */
+  --btn-radius:             8px;
+  --btn-font-weight:        600;
+
+  --btn-primary-bg:         var(--color-primary);
+  --btn-primary-bg-hover:   var(--color-primary-hover);
+  --btn-primary-text:       var(--color-on-primary);
+  --btn-primary-shadow:     0 2px 10px rgba(58, 134, 240, 0.25);
+
+  --btn-secondary-bg:       var(--color-surface-raised);
+  --btn-secondary-bg-hover: #253048;
+  --btn-secondary-text:     var(--color-text);
+  --btn-secondary-border:   var(--color-border-strong);
+
+  --btn-ghost-text:         var(--color-text-muted);
+  --btn-ghost-bg-hover:     var(--color-surface-raised);
+
+  --btn-danger-bg:          var(--color-danger);
+  --btn-danger-bg-hover:    #dc2626;
+  --btn-danger-text:        #ffffff;
+
+  --btn-accent-bg:          var(--color-accent);
+  --btn-accent-bg-hover:    var(--color-accent-hover);
+  --btn-accent-text:        var(--color-on-accent);
+
+  /* 6. Cards ─────────────────────────────────────────────── */
+  --card-bg:                var(--color-surface);
+  --card-border:            var(--color-border);
+  --card-radius:            14px;
+  --card-padding:           16px;
+  --card-shadow:            none;
+  --card-hover-shadow:      0 6px 24px rgba(0, 0, 0, 0.30);
+  --card-hover-lift:        -2px;
+  --tile-bg:                var(--color-surface-raised);  /* small cards inside cards */
+  --tile-radius:            10px;
+
+  /* 7. Charts ────────────────────────────────────────────── */
+  /* Categorical order validated for colour-vision deficiency (adjacent
+     CVD ΔE ≥ 8) on this surface. Keep the order; don't cycle past 8. */
+  --chart-1:                #3987e5;   /* blue */
+  --chart-2:                #d95926;   /* orange */
+  --chart-3:                #199e70;   /* aqua */
+  --chart-4:                #c98500;   /* yellow */
+  --chart-5:                #d55181;   /* magenta */
+  --chart-6:                #008300;   /* green */
+  --chart-7:                #9085e9;   /* violet */
+  --chart-8:                #e66767;   /* red */
+  --chart-muted:            #5b6678;   /* de-emphasised comparison series */
+  --chart-grid:             rgba(255, 255, 255, 0.06);
+  --chart-tick:             #8a9bb2;
+  --chart-tooltip-bg:       #141b2a;
+  --chart-tooltip-border:   #2b364d;
+  --chart-seq-rgb:          57, 135, 229;  /* sequential blue (heatmaps) */
+
+  /* 8. Layout ────────────────────────────────────────────── */
+  --font-sans:              'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --sidebar-width:          244px;
+  --sidebar-width-collapsed: 64px;
+  --header-height:          62px;
+  --radius-sm:              6px;
+  --radius-md:              10px;
+  --radius-lg:              14px;
+  --shadow-lg:              0 8px 30px rgba(0, 0, 0, 0.40);
+
+  /* Signals (traffic-light states: fixed, not themed) */
+  --signal-green:           #22c55e;
+  --signal-amber:           #f59e0b;
+  --signal-red:             #ef4444;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  /* 1. Brand */
+  --color-primary:          #1b5fc4;   /* MBKS blue */
+  --color-primary-hover:    #154fa6;
+  --color-primary-soft:     rgba(27, 95, 196, 0.10);
+  --color-primary-border:   rgba(27, 95, 196, 0.35);
+  --color-accent:           #7c3aed;
+  --color-accent-hover:     #6d28d9;
+  --color-accent-soft:      rgba(124, 58, 237, 0.09);
+  --color-accent-border:    rgba(124, 58, 237, 0.32);
+
+  /* 2. Surfaces */
+  --color-bg:               #f1f5fa;
+  --color-sidebar:          #ffffff;
+  --color-header:           #ffffff;
+  --color-surface:          #ffffff;
+  --color-surface-raised:   #f3f6fb;
+  --color-input:            #ffffff;
+  --color-overlay:          rgba(20, 35, 55, 0.40);
+  --color-border:           rgba(15, 35, 75, 0.10);
+  --color-border-strong:    rgba(15, 35, 75, 0.20);
+
+  /* 3. Text */
+  --color-text:             #0f172a;
+  --color-text-muted:       #334155;
+  --color-text-faint:       #64748b;
+  --color-sidebar-text:     #334155;
+
+  /* 4. Status: darker shades for contrast on white */
+  --color-success:          #15803d;
+  --color-success-soft:     rgba(21, 128, 61, 0.10);
+  --color-success-border:   rgba(21, 128, 61, 0.28);
+  --color-warning:          #b45309;
+  --color-warning-soft:     rgba(180, 83, 9, 0.10);
+  --color-warning-border:   rgba(180, 83, 9, 0.28);
+  --color-danger:           #b91c1c;
+  --color-danger-soft:      rgba(185, 28, 28, 0.09);
+  --color-danger-border:    rgba(185, 28, 28, 0.28);
+  --color-info:             #0369a1;
+  --color-info-soft:        rgba(3, 105, 161, 0.09);
+  --color-info-border:      rgba(3, 105, 161, 0.28);
+  --color-neutral:          #64748b;
+  --color-neutral-soft:     rgba(100, 116, 139, 0.10);
+  --color-neutral-border:   rgba(100, 116, 139, 0.28);
+
+  /* 5. Buttons */
+  --btn-primary-shadow:     0 2px 8px rgba(27, 95, 196, 0.22);
+  --btn-secondary-bg:       #ffffff;
+  --btn-secondary-bg-hover: #f3f6fb;
+  --btn-danger-bg-hover:    #991b1b;
+
+  /* 6. Cards */
+  --card-shadow:            0 1px 3px rgba(15, 35, 75, 0.06);
+  --card-hover-shadow:      0 6px 20px rgba(15, 35, 75, 0.10);
+
+  /* 7. Charts */
+  --chart-1:                #2a78d6;
+  --chart-2:                #eb6834;
+  --chart-3:                #1baf7a;
+  --chart-4:                #eda100;
+  --chart-5:                #e87ba4;
+  --chart-6:                #008300;
+  --chart-7:                #6250d6;
+  --chart-8:                #e34948;
+  --chart-muted:            #a3adbd;
+  --chart-seq-rgb:          42, 120, 214;
+  --chart-grid:             rgba(15, 35, 75, 0.07);
+  --chart-tick:             #64748b;
+  --chart-tooltip-bg:       #ffffff;
+  --chart-tooltip-border:   #c5d9f5;
+
+  /* 8. Layout */
+  --shadow-lg:              0 8px 30px rgba(15, 35, 75, 0.14);
+}
