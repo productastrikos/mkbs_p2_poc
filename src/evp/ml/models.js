@@ -191,12 +191,25 @@ export const RouteMovement = {
 
 /* ─── 3. GPS anomaly model ────────────────────────────────── */
 export const ANOMALY_FEATURES = ['Implied speed (km/h)', 'Implied vs reported speed gap (km/h)', 'Distance off road (m)', 'Heading change (deg/s)', 'Acceleration (m/s²)'];
+// Margin above the 99.7th-percentile score of normal fixes before a fix counts
+// as anomalous: an OBU sends a fix every 2 s, so the bare percentile would
+// flag a normal unit every few minutes. Sharp turns and hard braking still
+// reach this level on single fixes, so the guard alerts only on two
+// anomalous fixes in a row, or on one fix above the single-fix level.
+export const ANOMALY_ALERT_MARGIN = 0.04;
+export const ANOMALY_SINGLE_FIX_MARGIN = 0.08;
 
 export class AnomalyModel {
   train(rows) {
     const t0 = Date.now();
     this.forest = new IsolationForest({ trees: 100, sample: 256 }).fit(rows);
-    this.meta = { trainedAt: Date.now(), trainMs: Date.now() - t0, samples: rows.length, threshold: Math.round(this.forest.threshold * 1000) / 1000 };
+    const threshold = Math.round(this.forest.threshold * 1000) / 1000;
+    const alertThreshold = Math.round((threshold + ANOMALY_ALERT_MARGIN) * 1000) / 1000;
+    this.meta = {
+      trainedAt: Date.now(), trainMs: Date.now() - t0, samples: rows.length,
+      threshold, alertThreshold, consecutive: 2,
+      singleFixThreshold: Math.round((alertThreshold + ANOMALY_SINGLE_FIX_MARGIN) * 1000) / 1000,
+    };
     return this.meta;
   }
 

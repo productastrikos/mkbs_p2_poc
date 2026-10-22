@@ -1,11 +1,14 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { assembleData, DATA_FILES } from '../evp/data';
 import { SimEngine } from '../evp/engine/simulation';
+import { FleetOps } from '../evp/engine/operations';
 import { EtaModel, MovementModel, AnomalyModel } from '../evp/ml/models';
 import { buildAnalytics, etaAccuracy, DEFAULT_ASSUMPTIONS } from '../evp/analytics';
 import { SCENARIOS } from '../evp/engine/scenarios';
 import { buildInsights } from './insights';
+import { ACTION_FORMS } from './actionForms';
 import { llmStatus } from '../services/llm';
+import { USER } from '../config';
 
 /* App-wide state: static data, trained models, the running simulation and
    completed trips. The simulation snapshot lives in a separate external
@@ -21,23 +24,23 @@ class SimStore {
     this.snap = null;
     this.speed = 1;
     this.paused = false;
-    this.ambient = false;
     this.engine = null;
+    this.ops = null;
   }
 
   subscribe = (fn) => { this.listeners.add(fn); return () => this.listeners.delete(fn); };
   get = () => this.snap;
 
   publish() {
-    this.snap = { ...this.engine.snapshot(), speed: this.speed, paused: this.paused, ambient: this.ambient };
+    this.snap = { ...this.engine.snapshot(), speed: this.speed, paused: this.paused, ambient: Boolean(this.ops?.enabled), ops: this.ops?.summary() || null };
     this.listeners.forEach((fn) => fn());
   }
 
-  start(engine, onTick) {
+  start(engine, ops, onTick) {
     this.engine = engine;
+    this.ops = ops;
     let last = performance.now();
     let lastPub = 0;
-    let nextAmbient = engine.t + 120;
     this.timer = setInterval(() => {
       const now = performance.now();
       const real = Math.min(0.5, (now - last) / 1000);
@@ -45,10 +48,7 @@ class SimStore {
       if (!this.paused) {
         let sim = real * this.speed;
         while (sim > 1e-6) { const d = Math.min(0.1, sim); engine.step(d); sim -= d; }
-        if (this.ambient && engine.t >= nextAmbient) {
-          nextAmbient = engine.t + 150 + Math.random() * 240;
-          startAmbientTrip(engine);
-        }
+        ops.update();
       }
       if (now - lastPub >= 200) { lastPub = now; this.publish(); onTick?.(); }
     }, 100);
@@ -58,33 +58,43 @@ class SimStore {
   stop() { clearInterval(this.timer); }
   setSpeed(s) { this.speed = s; this.paused = false; this.publish(); }
   togglePause() { this.paused = !this.paused; this.publish(); }
-  setAmbient(on) { this.ambient = on; this.publish(); }
-}
-
-function startAmbientTrip(engine) {
-  const idle = [...engine.vehicles.values()].filter((v) => !v.trip && !engine.guard.quarantined.has(v.id));
-  if (!idle.length || engine.activeTrips().length >= 4) return;
-  const veh = idle[Math.floor(Math.random() * idle.length)];
-  const place = engine.data.places[Math.floor(Math.random() * engine.data.places.length)];
-  const toHospital = Math.random() < 0.6;
-  const hospital = engine.data.hospitals[Math.floor(Math.random() * engine.data.hospitals.length)];
-  try {
-    if (toHospital) {
-      engine.placeVehicle(veh.id, place.node, place.name);
-      engine.startTrip({ vehicleId: veh.id, status: 'TO_HOSPITAL', priority: ['Critical', 'Urgent', 'Urgent', 'Non-urgent'][Math.floor(Math.random() * 4)], destination: { type: 'hospital', id: hospital.id }, originName: place.name });
-    } else {
-      engine.startTrip({ vehicleId: veh.id, status: 'TO_PATIENT', priority: 'Urgent', destination: { type: 'place', id: place.id } });
-    }
-  } catch (e) { /* no route; skip */ }
+  setAmbient(on) {
+    if (!this.ops) return;
+    this.ops.enabled = on;
+    this.engine.log('info', `Live dispatch ${on ? 'on: emergency calls are assigned to the nearest free unit' : 'off: no new calls; units already on a job finish it'}`, { kind: 'operator' });
+    this.publish();
+  }
 }
 
 const store = new SimStore();
 export const useSim = () => useSyncExternalStore(store.subscribe, store.get);
 
-/* ─── Provider ────────────────────────────────────────────── */
-const LEVEL_TONE = { danger: 'danger', warning: 'warning', success: 'info', info: 'info' };
-const NOTIFY = /SECURITY|Conflict at|maximum hold|cancelled|blocked|arrived at/i;
+/* ─── Notifications from engine events ───────────────────── */
+// Only events that need the operator's attention become notifications; the
+// rest stay in the event log. Each kind has a clear title and a destination.
+function notificationFor(e) {
+  const j = e.junctionId;
+  switch (e.kind) {
+    case 'security': {
+      const [type, ...rest] = e.text.replace(/^SECURITY: /, '').split('. ');
+      return { tone: e.level === 'danger' ? 'danger' : 'warning', title: `Security: ${type}`, message: rest.join('. '), link: '/security' };
+    }
+    case 'conflict': return { tone: 'warning', title: `Priority conflict at ${j}`, message: e.text.replace(/^Conflict at [^:]+: /, ''), link: `/junctions/${j}` };
+    case 'maxhold': return { tone: 'warning', title: `Maximum hold reached at ${j}`, message: e.text, link: `/junctions/${j}` };
+    case 'cancel': return { tone: 'warning', title: `EVP request cancelled at ${j}`, message: e.text.replace(/^[^:]+: /, ''), link: `/junctions/${j}` };
+    case 'correction': return { tone: 'info', title: `Phase corrected at ${j}`, message: e.text.replace(/^[^:]+: /, ''), link: `/junctions/${j}` };
+    case 'trip-ended': return { tone: 'info', title: `${e.vehicleId}: trip ended before arrival`, message: e.text, link: e.tripId ? `/assistant?trip=${e.tripId}` : '/' };
+    case 'dispatch': return e.level === 'warning' ? { tone: 'warning', title: 'Emergency call not served', message: e.text, link: '/' } : null;
+    default: return null;
+  }
+}
 
+const clampAssumptions = (a) => Object.fromEntries(Object.entries({ ...DEFAULT_ASSUMPTIONS, ...a }).map(([k, v]) => {
+  const n = Number.isFinite(Number(v)) ? Math.max(0, Number(v)) : DEFAULT_ASSUMPTIONS[k];
+  return [k, k === 'collisionReduction' ? Math.min(1, n) : n];
+}));
+
+/* ─── Provider ────────────────────────────────────────────── */
 export function DataProvider({ children }) {
   const [status, setStatus] = useState({ stage: 'loading', message: 'Loading Kuching South road network…', progress: 0.02 });
   const [data, setData] = useState(null);
@@ -94,21 +104,28 @@ export function DataProvider({ children }) {
   const [modelLog, setModelLog] = useState([]);
   const [training, setTraining] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [actions, setActions] = useState([]);
+  const [operator, setOperator] = useState({ ...USER, signedInAt: Date.now(), signedIn: true });
   const [llm, setLlm] = useState({ available: false, checking: true });
-  const [assumptions, setAssumptions] = useState(DEFAULT_ASSUMPTIONS);
+  const [assumptions, setAssumptionsRaw] = useState(DEFAULT_ASSUMPTIONS);
   const [, setAlertsVersion] = useState(0);
   const engineRef = useRef(null);
+  const opsRef = useRef(null);
   const modelsRef = useRef(null);
   const lastEventId = useRef(0);
   const liveRef = useRef([]);
   const historyRef = useRef([]);
+  const operatorRef = useRef(operator);
+  operatorRef.current = operator;
 
   const pushNotification = useCallback((n) => {
     setNotifications((list) => [{ id: `N-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, read: false, createdAt: new Date().toISOString(), ...n }, ...list].slice(0, 60));
   }, []);
 
-  /* Retrain ETA + movement models on history + all live trips. */
-  const retrain = useCallback(async (trigger) => {
+  /* Retrain ETA + movement models on history + all live trips. Runs are
+     queued, so two trips finishing together give v2 then v3, never two v2s. */
+  const retrainChain = useRef(Promise.resolve());
+  const retrainOnce = useCallback(async (trigger) => {
     const engine = engineRef.current;
     const prev = modelsRef.current;
     if (!engine || !prev) return;
@@ -123,12 +140,16 @@ export function DataProvider({ children }) {
     modelsRef.current = { ...prev, eta, movement };
     setModelInfo({ eta: eta.meta, movement: movement.meta, anomaly: prev.anomaly.meta });
     setModelLog((log) => [{
-      at: Date.now(), trigger: trigger.id, tripEtaMae: trigger.tripEtaMae, liveTrips: liveRef.current.length,
+      at: Date.now(), simAt: engine.now, trigger: trigger.id, tripEtaMae: trigger.tripEtaMae, liveTrips: liveRef.current.length,
       eta: { version: eta.version, mae: eta.meta.mae, before: prev.eta.meta.mae, samples: eta.meta.samples },
       movement: { version: movement.version, accuracy: movement.meta.accuracy, before: prev.movement.meta.accuracy },
     }, ...log]);
     setTraining(false);
   }, []);
+  const retrain = useCallback((trigger) => {
+    retrainChain.current = retrainChain.current.then(() => retrainOnce(trigger)).catch((e) => { console.error(e); setTraining(false); });
+    return retrainChain.current;
+  }, [retrainOnce]);
 
   /* Boot: load data, train models, start the engine. */
   useEffect(() => {
@@ -160,10 +181,10 @@ export function DataProvider({ children }) {
         anomaly.train(raw['gps-fixes'].rows);
         const models = { eta, movement, anomaly };
         modelsRef.current = models;
-        setStatus({ stage: 'training', message: 'Starting SCATS controllers…', progress: 0.96 });
+        setStatus({ stage: 'training', message: 'Starting SCATS controllers and the fleet…', progress: 0.96 });
         await new Promise((r) => setTimeout(r, 0));
         const engine = new SimEngine({ data: assembled, models, seed: 7, startMs: Date.now() - 300000 });
-        for (let i = 0; i < 600; i++) engine.step(0.5);
+        engineRef.current = engine;
         engine.onTripComplete = (rec) => {
           rec.tripEtaMae = (() => {
             const xs = rec.junctions.map((c) => c.etaMae).filter((x) => x != null);
@@ -174,25 +195,29 @@ export function DataProvider({ children }) {
           setTimeout(() => retrain(rec), 50);
         };
         engine.onAlert = () => setAlertsVersion((v) => v + 1);
+        // The fleet is already working when the console opens: during the
+        // five-minute warm-up of the signal controllers one call is answered
+        // early (its unit is on scene at boot) and two more come in late
+        // enough that their units are still driving when the console opens.
+        const ops = new FleetOps(engine);
+        opsRef.current = ops;
+        for (let i = 0; i < 600; i++) {
+          if (i === 0) ops.dispatch({ priority: 'Urgent' });
+          if (i === 480) ops.dispatch({ priority: 'Critical' });
+          if (i === 560) ops.dispatch({ priority: 'Urgent' });
+          engine.step(0.5);
+          ops.update();
+        }
         lastEventId.current = engine.eventSeq;
-        engineRef.current = engine;
         if (cancelled) return;
         setData(assembled);
         setHistory(trips);
         setModelInfo({ eta: eta.meta, movement: movement.meta, anomaly: anomaly.meta });
-        store.start(engine, () => {
+        store.start(engine, ops, () => {
           const fresh = engine.events.filter((e) => e.id > lastEventId.current);
           if (!fresh.length) return;
           lastEventId.current = fresh[0].id;
-          fresh.reverse().filter((e) => e.level !== 'info' && NOTIFY.test(e.text)).forEach((e) => {
-            const security = e.text.startsWith('SECURITY');
-            pushNotification({
-              tone: LEVEL_TONE[e.level],
-              title: security ? e.text.split('.')[0].replace('SECURITY: ', 'Security: ') : e.text.split(':')[0].slice(0, 70),
-              message: security ? e.text.split('. ').slice(1).join('. ') : e.text,
-              link: security ? '/security' : e.junctionId ? `/junctions/${e.junctionId}` : '/',
-            });
-          });
+          fresh.reverse().forEach((e) => { const n = notificationFor(e); if (n) pushNotification(n); });
         });
         setStatus({ stage: 'ready', message: 'Ready', progress: 1 });
       } catch (e) {
@@ -210,13 +235,30 @@ export function DataProvider({ children }) {
     [data, allTrips, assumptions],
   );
   const liveAccuracy = useMemo(() => etaAccuracy(liveTrips), [liveTrips]);
-  const insights = useMemo(() => (analytics && data ? buildInsights(analytics, data, history) : []), [analytics, data, history]);
+  const insights = useMemo(() => (analytics && data ? buildInsights(analytics, data, history, modelInfo) : []), [analytics, data, history, modelInfo]);
 
   const markRead = useCallback((id) => setNotifications((list) => list.map((n) => (n.id === id ? { ...n, read: true } : n))), []);
   const markAllRead = useCallback(() => setNotifications((list) => list.map((n) => ({ ...n, read: true }))), []);
+  const setAssumptions = useCallback((a) => setAssumptionsRaw(clampAssumptions(a)), []);
 
-  const runAction = useCallback(async (insightId, action, values) => {
-    engineRef.current?.log('info', `Operator action (${action}) on insight ${insightId}: ${Object.values(values).filter(Boolean).join(' · ').slice(0, 140)}`);
+  /* Operator actions from AI insights: recorded, logged and listed in the panel. */
+  const runAction = useCallback(async (insight, action, values) => {
+    const by = operatorRef.current.name;
+    const summary = Object.values(values).filter(Boolean).join(' · ').slice(0, 160);
+    const rec = { id: `ACT-${String(Date.now()).slice(-6)}`, at: Date.now(), action, title: ACTION_FORMS[action]?.title || action, insightId: insight.id, insightTitle: insight.title, values, by, status: 'Submitted' };
+    setActions((list) => [rec, ...list].slice(0, 50));
+    engineRef.current?.log('info', `Operator action ${rec.id} (${rec.title}) by ${by} on "${insight.title}": ${summary}`, { kind: 'operator' });
+    return rec;
+  }, []);
+
+  const signOut = useCallback(() => {
+    engineRef.current?.log('info', `${operatorRef.current.name} signed out of the console`, { kind: 'operator' });
+    setOperator((o) => ({ ...o, signedIn: false }));
+  }, []);
+  const signIn = useCallback((name, role) => {
+    const next = { name: name || USER.name, role: role || USER.role, signedInAt: Date.now(), signedIn: true };
+    setOperator(next);
+    engineRef.current?.log('info', `${next.name} signed in to the console`, { kind: 'operator' });
   }, []);
 
   const runScenario = useCallback((id) => {
@@ -225,7 +267,7 @@ export function DataProvider({ children }) {
     if (!engine || !sc) return { ok: false, message: 'Not ready' };
     try {
       const res = sc.run(engine);
-      engine.log(res.ok ? 'info' : 'warning', `Scenario "${sc.label}": ${res.message}`);
+      engine.log(res.ok ? 'info' : 'warning', `Scenario "${sc.label}": ${res.message}`, { kind: 'scenario' });
       store.publish();
       return res;
     } catch (e) {
@@ -235,10 +277,10 @@ export function DataProvider({ children }) {
 
   const value = useMemo(() => ({
     status, ready: status.stage === 'ready', data, history, liveTrips, allTrips, analytics, liveAccuracy,
-    modelInfo, modelLog, training, engine: engineRef.current, sim: store,
-    runScenario, notifications, markRead, markAllRead, pushNotification, insights, runAction, llm,
-    assumptions, setAssumptions,
-  }), [status, data, history, liveTrips, allTrips, analytics, liveAccuracy, modelInfo, modelLog, training, runScenario, notifications, markRead, markAllRead, pushNotification, insights, runAction, llm, assumptions]);
+    modelInfo, modelLog, training, engine: engineRef.current, ops: opsRef.current, sim: store,
+    runScenario, notifications, markRead, markAllRead, pushNotification, insights, runAction, actions, llm,
+    assumptions, setAssumptions, operator, signIn, signOut,
+  }), [status, data, history, liveTrips, allTrips, analytics, liveAccuracy, modelInfo, modelLog, training, runScenario, notifications, markRead, markAllRead, pushNotification, insights, runAction, actions, llm, assumptions, setAssumptions, operator, signIn, signOut]);
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }

@@ -14,7 +14,7 @@
    (with the v0 heuristic models) and live in the browser (with the trained
    models), so the models learn from the physics they will predict. */
 import { spanAt } from '../network.js';
-import { analyseRoute, MOVES } from '../junctions.js';
+import { analyseRoute, MOVES, phaseServes } from '../junctions.js';
 import { JunctionController } from '../scats/controller.js';
 import { SimulatedScatsAdapter } from '../scats/ScatsAdapter.js';
 import { Guard, ALERT_TYPES } from './guard.js';
@@ -58,12 +58,15 @@ export class SimEngine {
     });
     this.adapter = new SimulatedScatsAdapter(this.controllers, () => this.t);
     this.alerts = [];
-    this.guard = new Guard({ registry: data.ambulances, network: this.net, anomalyModel: models.anomaly, onAlert: (a) => this._onAlert(a) });
+    this.guard = new Guard({
+      registry: data.ambulances, network: this.net, anomalyModel: models.anomaly,
+      onAlert: (a) => this._onAlert(a), onRepeat: (a) => this._onAlertRepeat(a),
+    });
     this.decision = new DecisionEngine(this);
     this.vehicles = new Map();
     data.ambulances.forEach((a) => {
       const base = this.placesById.get(a.base);
-      this.vehicles.set(a.id, { id: a.id, amb: a, node: base.node, lat: base.lat, lng: base.lng, heading: 0, v: 0, trip: null, location: base.name });
+      this.vehicles.set(a.id, { id: a.id, amb: a, node: base.node, lat: base.lat, lng: base.lng, heading: 0, v: 0, trip: null, location: base.name, atBase: true, busy: null });
     });
     this.trips = new Map();
     this.completed = [];
@@ -74,7 +77,9 @@ export class SimEngine {
     this.eventSeq = 0;
     this.costCache = new Map();
     this.armExits = this._computeArmExits();
-    this.onTripComplete = null;
+    this.onTripComplete = null;   // EVP trip records (analytics, retraining)
+    this.onTripEnd = [];          // every trip or drive that ends: (trip, record | null)
+    this.onTripStart = [];        // (trip)
     this.onAlert = null;
     this.timers = [];
   }
@@ -85,15 +90,23 @@ export class SimEngine {
   /** Move an idle ambulance to a graph node (e.g. the patient pickup point). */
   placeVehicle(vehicleId, node, name) {
     const veh = this.vehicles.get(vehicleId);
+    if (veh?.trip && veh.trip.evp === false) this._completeTrip(veh.trip, 'Re-tasked');
     if (!veh || veh.trip) return false;
     const [lat, lng] = this.net.nodes[node];
-    Object.assign(veh, { node, lat, lng, location: name });
+    const base = this.placesById.get(veh.amb.base);
+    Object.assign(veh, { node, lat, lng, location: name, atBase: base?.node === node });
     return true;
+  }
+
+  /** Units free for a new job: no trip, not quarantined, not on scene or at handover. */
+  availableVehicles() {
+    return [...this.vehicles.values()].filter((v) => (!v.trip || v.trip.evp === false) && !v.busy && !this.guard.quarantined.has(v.id));
   }
 
   get now() { return this.epoch + this.t * 1000; }
 
   activeTrips() { return [...this.trips.values()].filter((tr) => tr.active); }
+  evpTrips() { return this.activeTrips().filter((tr) => tr.evp !== false); }
 
   log(level, text, meta = {}) {
     const ev = { id: ++this.eventSeq, t: this.t, time: this.now, level, text, ...meta };
@@ -184,11 +197,14 @@ export class SimEngine {
   /**
    * Start a trip (the crew pressed START on the tablet).
    *   opts = { vehicleId, status, priority, destination: { type: 'hospital'|'place', id },
-   *            originNode?, originName?, startOffset?, allowDeviation?, crew? }
+   *            originNode?, originName?, startOffset?, allowDeviation?, crew?,
+   *            evp? (false = repositioning drive: tracked, never pre-empts), source? }
    */
   startTrip(opts) {
     const veh = this.vehicles.get(opts.vehicleId);
     if (!veh) throw new Error(`Unknown vehicle ${opts.vehicleId}`);
+    // A unit driving back to base can be re-tasked; its return drive ends where it is.
+    if (veh.trip && veh.trip.evp === false) this._completeTrip(veh.trip, 'Re-tasked');
     if (veh.trip) throw new Error(`${veh.id} already has an active trip`);
     const dest = opts.destination.type === 'hospital' ? this.hospitalsById.get(opts.destination.id) : this.placesById.get(opts.destination.id);
     if (!dest) throw new Error('Unknown destination');
@@ -203,8 +219,11 @@ export class SimEngine {
       if (res) { route = res.route; deviation = res.deviation; }
     }
     const t0 = this.t;
+    const evp = opts.evp !== false;
     const trip = {
-      id: opts.id || `TRIP-${String(++this.tripSeq).padStart(3, '0')}`,
+      id: opts.id || (evp ? `TRIP-${String(++this.tripSeq).padStart(3, '0')}` : `DRV-${veh.id}-${Math.round(this.t)}`),
+      evp,
+      source: opts.source || 'operator',
       vehicleId: veh.id,
       obuId: veh.amb.obuId,
       status: opts.status,
@@ -237,10 +256,15 @@ export class SimEngine {
     Object.assign(veh, {
       trip, d: trip.startOffset, v: opts.startOffset ? 8 : 0, lane: this.rng.pick(['L', 'C', 'R']),
       ou: 1, driver: Math.max(0.85, Math.min(1.15, this.rng.normal(1, 0.06))), holdUntil: 0, stopUntil: 0,
-      nextFixAt: this.t + this.rng.float(0, FIX_INTERVAL_S), nextLaneAt: this.t + 2, spoof: null,
+      nextFixAt: this.t + this.rng.float(0, FIX_INTERVAL_S), nextLaneAt: this.t + 2, spoof: null, atBase: false,
     });
     const jList = trip.crossings.map((c) => c.j).join(', ') || 'none';
-    this.log('info', `${veh.id} START: ${trip.statusLabel}, ${trip.priority}, to ${trip.destination.name}. Route ${(route.length / 1000).toFixed(1)} km via ${trip.crossings.length} EVP junctions (${jList})`, { tripId: trip.id, vehicleId: veh.id });
+    if (evp) {
+      this.log('info', `${veh.id} START: ${trip.statusLabel}, ${trip.priority}, to ${trip.destination.name}. Route ${(route.length / 1000).toFixed(1)} km via ${trip.crossings.length} EVP junctions (${jList})`, { tripId: trip.id, vehicleId: veh.id, kind: 'start' });
+    } else {
+      this.log('info', `${veh.id} driving to ${trip.destination.name} (${(route.length / 1000).toFixed(1)} km, no EVP: signals run normally)`, { vehicleId: veh.id, kind: 'fleet' });
+    }
+    this.onTripStart.forEach((fn) => fn(trip));
     return trip;
   }
 
@@ -370,6 +394,8 @@ export class SimEngine {
       if (c.arrival == null && (toStop <= 3 || (veh.v < 0.5 && toStop < 60 && toStop > 0))) {
         c.arrival = r1(tRel);
         c.arrivalAbs = t;
+        // Ground truth for "pre-empted": the ambulance's own movement was green when it got here.
+        c.greenOnArrival = this.controllers.get(c.j).moveState(c.arm, c.move) === 'G';
         const shadow = this.shadows.get(c.j).moveState(c.arm, c.move);
         if (shadow === 'G') c.baseWait = 0; else this.pendingBaseline.push({ c, t });
       }
@@ -430,6 +456,7 @@ export class SimEngine {
     else { trip.offRouteSince = null; trip.dEst = loc.d; }
     trip.stoppedSince = fix.speed < 0.6 ? trip.stoppedSince ?? t : null;
     if (trip.offRouteSince != null && t - trip.offRouteSince > 20 && trip.physRoute !== trip.route) this._adoptPhysicalRoute(trip);
+    if (!trip.evp) return; // repositioning drive: tracked only
     trip.trace.push([Math.round(t - trip.t0), Math.round(trip.dEst), Math.round(fix.speed * 10)]);
 
     const lp = localParts(this.now);
@@ -479,10 +506,41 @@ export class SimEngine {
     this.log('info', `${trip.vehicleId}: route updated after diversion (${trip.crossings.filter((c) => !c.passed).length} EVP junctions ahead)`, { tripId: trip.id, vehicleId: trip.vehicleId });
   }
 
+  /** Graph node and road name where a vehicle is now along its route. */
+  _positionOnRoute(route, d) {
+    let k = 0;
+    while (k + 1 < route.nodes.length && route.spans[k].d1 <= d) k++;
+    return { node: route.nodes[k], road: spanAt(route.spans, Math.min(d, route.length)).edge.name };
+  }
+
   _completeTrip(trip, reason) {
-    if (!trip.active) return;
+    if (!trip.active) return null;
     trip.active = false;
     const veh = this.vehicles.get(trip.vehicleId);
+    const arrived = reason === 'Arrived at destination';
+    const settle = () => {
+      veh.trip = null;
+      veh.v = 0;
+      if (arrived) {
+        veh.node = trip.physRoute.nodes[trip.physRoute.nodes.length - 1];
+        veh.location = trip.destination.name;
+        veh.atBase = trip.destination.id === veh.amb.base;
+      } else {
+        // Stopped short: the unit is where it stopped, not at the destination.
+        const pos = this._positionOnRoute(trip.physRoute, veh.d);
+        veh.node = pos.node;
+        veh.location = pos.road ? `${pos.road} (stopped en route)` : 'En route (stopped)';
+        veh.atBase = false;
+      }
+    };
+    if (!trip.evp) {
+      for (const [jid, g] of [...this.decision.grants.entries()]) if (g.tripId === trip.id) this.decision._release(jid, g, 'Trip ended');
+      settle();
+      this.trips.delete(trip.id);
+      if (arrived) this.log('info', `${trip.vehicleId} at ${trip.destination.name}`, { vehicleId: trip.vehicleId, kind: 'fleet' });
+      this.onTripEnd.forEach((fn) => fn(trip, null, reason));
+      return null;
+    }
     if (trip.physCrossings) this._adoptPhysicalRoute(trip);
     // Release anything still held.
     for (const [jid, g] of [...this.decision.grants.entries()]) {
@@ -497,14 +555,18 @@ export class SimEngine {
     const junctions = trip.crossings.filter((c) => c.arrival != null).map((c) => {
       const greenLead = c.greenAt != null && c.arrivalAbs != null ? r1(c.arrivalAbs - c.greenAt) : null;
       const errors = c.preds.filter(([tp]) => tp < c.arrival).map(([tp, eta]) => Math.abs(eta - (c.arrival - tp)));
+      const phase = c.phase ? this.junctionsById.get(c.j).phases.find((p) => p.id === c.phase) : null;
       return {
         j: c.j, dStop: Math.round(c.dStop), arm: c.arm, move: c.move, pmv: c.pmv, alt: c.alt, gap: Math.round(c.gap * 1000) / 1000,
         prev: c.prev, lanes: c.lanes, cg: c.cg ?? Math.round(this.controllers.get(c.j).congestion * 100) / 100,
         arrival: c.arrival, pass: c.pass ?? c.arrival, wait: r1(c.wait), baseWait: c.baseWait ?? 0,
-        preempted: c.greenAt != null && (greenLead == null || greenLead >= -1),
+        // Pre-empted = the EVP green was already showing for this ambulance's movement when it
+        // reached the junction (a normal SCATS green that the request arrived after does not count).
+        preempted: c.greenAt != null && Boolean(c.greenOnArrival) && greenLead != null && greenLead >= -1,
+        phaseServesMove: phase ? phaseServes(phase, c.arm, c.move) : null,
         greenLead, requestAt: c.requestAt != null ? r1(c.requestAt - trip.t0) : null, phase: c.phase || null,
-        phaseRule: c.phaseRule || null, conflict: Boolean(c.conflict), yieldTo: c.yieldTo || null,
-        pedProtect: c.pedProtect || 0, override: c.override || null, obs: c.obs,
+        phaseRule: c.phaseRule || null, conflict: Boolean(c.conflict), yieldTo: c.yieldTo || null, priorityOver: c.priorityOver || null,
+        pedProtect: c.pedProtect || 0, override: c.override || null, lineCorrected: Boolean(c.lineCorrected), obs: c.obs,
         etaMae: errors.length ? r1(errors.reduce((s, x) => s + x, 0) / errors.length) : null,
         preds: c.preds,
       };
@@ -521,19 +583,26 @@ export class SimEngine {
       conflictsAvoided: avoidedStops, idleSavedS: Math.round(idleSaved),
       fuelSavedL: Math.round(((idleSaved / 3600) * IDLE_FUEL_LPH + avoidedStops * STOP_START_L) * 1000) / 1000,
       junctions, trace: trip.trace, anomalies: trip.anomalies, overrides: [...trip.overrides, ...junctions.filter((c) => c.override).map((c) => ({ j: c.j, code: c.override }))],
-      deviation: trip.deviation, endReason: reason, source: this.mode === 'live' ? 'live' : 'history',
+      deviation: trip.deviation, endReason: reason, arrived, source: this.mode === 'live' ? 'live' : 'history',
+      crew: trip.crew || null, startedBy: trip.source,
       events: trip.events.map((e) => ({ t: r1(e.t - trip.t0), level: e.level, text: e.text })),
       models: { eta: this.models.eta.version ?? 0, movement: this.models.movement.version ?? 0 },
     };
     trip.record = record;
-    veh.trip = null;
-    veh.v = 0;
-    veh.node = trip.route.nodes[trip.route.nodes.length - 1];
-    veh.location = trip.destination.name;
+    settle();
     this.completed.unshift(record);
     this.trips.delete(trip.id);
-    this.log('success', `${trip.vehicleId} arrived at ${trip.destination.short} (${reason}): ${Math.round(duration)} s, ${Math.round(record.saved)} s saved vs no-EVP baseline`, { vehicleId: trip.vehicleId });
+    const mins = `${Math.floor(duration / 60)} min ${Math.round(duration % 60)} s`;
+    if (arrived) {
+      const outcome = junctions.length
+        ? `${Math.round(record.saved)} s saved vs the no-EVP baseline (${junctions.filter((c) => c.preempted).length} of ${junctions.length} EVP junction${junctions.length === 1 ? '' : 's'} pre-empted)`
+        : 'route crossed no EVP junction';
+      this.log('success', `${trip.vehicleId} arrived at ${trip.destination.short} in ${mins}: ${outcome}`, { vehicleId: trip.vehicleId, tripId: trip.id, kind: 'arrival' });
+    } else {
+      this.log('warning', `${trip.vehicleId} trip ${trip.id} ended before reaching ${trip.destination.short} (${reason}) after ${mins}`, { vehicleId: trip.vehicleId, tripId: trip.id, kind: 'trip-ended' });
+    }
     this.onTripComplete?.(record);
+    this.onTripEnd.forEach((fn) => fn(trip, record, reason));
     return record;
   }
 
@@ -546,7 +615,13 @@ export class SimEngine {
     alert.time = this.epoch + alert.t * 1000;
     this.alerts.unshift(alert);
     if (this.alerts.length > 200) this.alerts.pop();
-    this.log(alert.severity === 'danger' ? 'danger' : 'warning', `SECURITY: ${alert.type}. ${alert.detail}. ${alert.action}`, { vehicleId: alert.vehicleId, junctionId: alert.junctionId });
+    this.log(alert.severity === 'danger' ? 'danger' : 'warning', `SECURITY: ${alert.type}. ${alert.detail}. ${alert.action}`, { vehicleId: alert.vehicleId, junctionId: alert.junctionId, kind: 'security', alertId: alert.id });
+    this.onAlert?.(alert);
+  }
+
+  _onAlertRepeat(alert) {
+    alert.lastTime = this.epoch + alert.lastT * 1000;
+    this.log('info', `Security: ${alert.type} repeated by ${alert.vehicleId || alert.obuId} (${alert.count}× on alert ${alert.id}). ${alert.action}`, { vehicleId: alert.vehicleId, junctionId: alert.junctionId, kind: 'security-repeat' });
     this.onAlert?.(alert);
   }
 
@@ -606,27 +681,51 @@ export class SimEngine {
     return ghost;
   }
 
-  injectRequestWithoutTrip(vehicleId, count = 3) {
+  /** Demo: a registered OBU with no trip sends `count` requests, `gapS` apart, to its nearest junction. */
+  injectRequestWithoutTrip(vehicleId, count = 3, gapS = 12) {
     const veh = this.vehicles.get(vehicleId);
     if (!veh || veh.trip) return false;
     const near = this.data.junctions.slice().sort((a, b) => distance(veh.lat, veh.lng, a.lat, a.lng) - distance(veh.lat, veh.lng, b.lat, b.lng))[0];
     for (let i = 0; i < count; i++) {
-      this.guard.checkRequest({ obuId: veh.amb.obuId, t: this.t + i * 40, junctionId: near.id, lat: veh.lat, lng: veh.lng }, null);
+      this.after(i * gapS, () => {
+        if (veh.trip && veh.trip.evp !== false) return;
+        this.guard.checkRequest({ obuId: veh.amb.obuId, t: this.t, junctionId: near.id, lat: veh.lat, lng: veh.lng }, null);
+      });
     }
-    return true;
+    return { junctionId: near.id, count, overS: (count - 1) * gapS };
   }
 
-  reinstate(vehicleId) {
+  reinstate(vehicleId, by = 'operator') {
     this.guard.reinstate(vehicleId);
     const veh = this.vehicles.get(vehicleId);
-    if (veh?.trip) veh.trip.evpSuspended = false;
-    this.alerts.forEach((a) => { if (a.vehicleId === vehicleId && a.status === 'open') a.status = 'resolved'; });
-    this.log('success', `${vehicleId} reinstated by operator: EVP requests allowed again`, { vehicleId });
+    if (veh?.trip) {
+      veh.trip.evpSuspended = false;
+      // Junctions ahead that were cancelled by the quarantine may request again.
+      veh.trip.crossings.forEach((c) => {
+        if (!c.passed && c.request === 'CANCELLED' && c.override === 'QUARANTINE') { c.request = null; c.cancelledAt = null; }
+      });
+    }
+    this.alerts.forEach((a) => { if (a.vehicleId === vehicleId && a.status !== 'resolved') { a.status = 'resolved'; a.resolvedBy = by; a.resolvedAt = this.now; } });
+    this.log('success', `${vehicleId} reinstated by ${by}: EVP requests allowed again`, { vehicleId, kind: 'operator' });
   }
 
-  acknowledge(alertId) {
+  acknowledge(alertId, by = 'operator') {
     const a = this.alerts.find((x) => x.id === alertId);
-    if (a && a.status === 'open') a.status = 'acknowledged';
+    if (!a || a.status !== 'open') return;
+    a.status = 'acknowledged';
+    a.ackBy = by;
+    a.ackAt = this.now;
+    this.log('info', `Alert ${a.id} (${a.type}, ${a.vehicleId || a.obuId}) acknowledged by ${by}`, { vehicleId: a.vehicleId, kind: 'operator' });
+  }
+
+  /** Close an alert that needs no unit reinstatement (e.g. an unregistered OBU that was blocked). */
+  resolve(alertId, by = 'operator') {
+    const a = this.alerts.find((x) => x.id === alertId);
+    if (!a || a.status === 'resolved') return;
+    a.status = 'resolved';
+    a.resolvedBy = by;
+    a.resolvedAt = this.now;
+    this.log('info', `Alert ${a.id} (${a.type}) resolved by ${by}`, { vehicleId: a.vehicleId, kind: 'operator' });
   }
 
   /* ─── Read model for the UI ─────────────────────────────── */
@@ -638,37 +737,55 @@ export class SimEngine {
     const st = this.adapter.getStatus(c.j);
     const etaNow = c.pred ? Math.max(0, c.pred.eta - (this.t - c.pred.t)) : null;
     const ranked = c.pred ? Object.entries(c.pred.probs).sort((a, b) => b[1] - a[1]) : [];
+    const quarantined = this.guard.quarantined.has(trip.vehicleId);
     let greenIn = null;
+    let triggerIn = null;
     if (c.request === 'GREEN') greenIn = 0;
     else if (c.request === 'SENT') greenIn = Math.max(0, this.adapter.clearanceTime(c.j, c.phase, c.arm, c.requestedMoves || [c.move]));
-    else if (etaNow != null) greenIn = Math.max(0, etaNow - LEAD_S);
+    else if (etaNow != null && !quarantined && !trip.evpSuspended && !['BLOCKED', 'YIELDING', 'CANCELLED', 'RELEASED'].includes(c.request)) {
+      // Target: green LEAD_S before arrival; the request goes out at ETA ≤ clearance + LEAD_S.
+      greenIn = Math.max(0, etaNow - LEAD_S);
+      triggerIn = Math.max(0, etaNow - (c.triggerAt ?? LEAD_S));
+    }
     return {
       j: c.j, name: j.name, dist: Math.max(0, c.dStop - (veh?.d ?? trip.dEst)), eta: etaNow, lo: c.pred ? Math.max(0, c.pred.lo - (this.t - c.pred.t)) : null,
       hi: c.pred ? Math.max(0, c.pred.hi - (this.t - c.pred.t)) : null, probs: c.pred?.probs || null, top: ranked[0]?.[0] || c.move, topP: ranked[0]?.[1] ?? null,
       plannedMove: c.pmv, arm: c.arm, toArm: c.toArm, phase: c.phase, phaseRule: c.phaseRule, request: c.request, yieldTo: c.yieldTo || null,
-      signal: this.controllers.get(c.j).moveState(c.arm, c.move), greenIn, mode: st?.mode, triggerAt: c.triggerAt, override: c.override || null,
+      signal: this.controllers.get(c.j).moveState(c.arm, c.move), greenIn, triggerIn, mode: st?.mode, triggerAt: c.triggerAt, override: c.override || null,
     };
   }
 
   snapshot() {
-    const vehicles = [...this.vehicles.values()].map((v) => ({
-      id: v.id, lat: v.lat, lng: v.lng, heading: v.heading, speed: v.trip ? v.v : 0,
-      tripId: v.trip?.id || null, priority: v.trip?.priority || null, status: v.trip ? v.trip.status : 'IDLE',
-      quarantined: this.guard.quarantined.has(v.id), location: v.location, operator: v.amb.operator, callsign: v.amb.callsign,
-    }));
-    const trips = this.activeTrips().map((tr) => {
+    const vehicles = [...this.vehicles.values()].map((v) => {
+      const evpTrip = v.trip && v.trip.evp !== false ? v.trip : null;
+      return {
+        id: v.id, lat: v.lat, lng: v.lng, heading: v.heading, speed: v.trip ? v.v : 0,
+        tripId: evpTrip?.id || null, priority: evpTrip?.priority || null, tripTo: evpTrip?.destination.name || null,
+        status: evpTrip ? evpTrip.status : v.trip ? 'REPOSITIONING' : v.busy || (v.atBase ? 'AVAILABLE' : 'AVAILABLE_AWAY'),
+        driveTo: v.trip && !evpTrip ? v.trip.destination.name : null,
+        quarantined: this.guard.quarantined.has(v.id), location: v.location, atBase: Boolean(v.atBase), mission: v.missionId || null,
+        operator: v.amb.operator, callsign: v.amb.callsign, plate: v.amb.plate,
+      };
+    });
+    const trips = this.evpTrips().map((tr) => {
       const veh = this.vehicles.get(tr.vehicleId);
       const remaining = Math.max(0, tr.physRoute.length - veh.d);
+      const elapsed = this.t - tr.t0;
+      // Destination ETA from the trip's own average speed so far (includes signal waits).
+      const travelled = veh.d - tr.startOffset;
+      const avgSpeed = elapsed > 20 && travelled > 100 ? travelled / elapsed : 9;
       return {
-        id: tr.id, vehicleId: tr.vehicleId, priority: tr.priority, status: tr.status, statusLabel: tr.statusLabel,
-        destination: tr.destination, origin: tr.origin.name, routeVersion: tr.routeVersion, d: veh.d, length: tr.physRoute.length,
-        remaining, etaDest: remaining / Math.max(5, veh.v * 0.6 + 4), elapsed: this.t - tr.t0, evpSuspended: Boolean(tr.evpSuspended),
-        stopped: tr.stoppedSince != null, offRoute: tr.offRouteSince != null,
+        id: tr.id, vehicleId: tr.vehicleId, priority: tr.priority, status: tr.status, statusLabel: tr.statusLabel, crew: tr.crew, source: tr.source,
+        destination: tr.destination, origin: tr.origin.name, routeVersion: tr.routeVersion, d: veh.d, startOffset: tr.startOffset, length: tr.physRoute.length,
+        remaining, etaDest: remaining / Math.max(3, avgSpeed), elapsed,
+        evpSuspended: Boolean(tr.evpSuspended) || this.guard.quarantined.has(tr.vehicleId),
+        stopped: tr.stoppedSince != null, offRoute: tr.offRouteSince != null, speed: veh.v,
         next: this.nextJunctionInfo(tr),
         crossings: tr.crossings.map((c) => ({
           j: c.j, arm: c.arm, toArm: c.toArm, move: c.move, dStop: c.dStop, passed: c.passed, request: c.request, phase: c.phase,
           eta: c.pred ? Math.max(0, c.pred.eta - (this.t - c.pred.t)) : null, lo: c.pred?.lo, hi: c.pred?.hi,
           probs: c.pred?.probs || null, wait: c.wait, baseWait: c.baseWait, override: c.override || null, conflict: Boolean(c.conflict),
+          greenOnArrival: c.greenOnArrival ?? null,
         })),
       };
     });
@@ -680,8 +797,8 @@ export class SimEngine {
     });
     return {
       t: this.t, now: this.now, rain: this.rain, vehicles, trips, junctions,
-      ghosts: this.ghosts.map((g) => ({ ...g })), events: this.events.slice(0, 80), alerts: this.alerts.slice(0, 100),
-      stats: { ...this.decision.stats }, quarantined: [...this.guard.quarantined.keys()],
+      ghosts: this.ghosts.map((g) => ({ ...g })), events: this.events.slice(0, 120), alerts: this.alerts.slice(0, 100).map((a) => ({ ...a })),
+      stats: { ...this.decision.stats }, guard: { ...this.guard.stats }, quarantined: [...this.guard.quarantined.keys()],
     };
   }
 

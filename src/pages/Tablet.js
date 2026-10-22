@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { MapContainer, Marker, Polyline, useMap } from 'react-leaflet';
 import { Card, Button, Badge, Tabs, Icon, PageHeader, DetailGrid } from '../components/ui';
 import { useData, useSim } from '../data/DataProvider';
@@ -7,7 +7,7 @@ import { useTheme } from '../theme/ThemeProvider';
 import BaseTiles from '../components/evp/BaseTiles';
 import { resolveColor } from '../components/charts/chartTheme';
 import { ambulanceIcon, junctionIcon, hospitalIcon, moveGlyph } from '../components/evp/mapIcons';
-import { PriorityBadge, fmtS, STATUS_LABEL, REQUEST_LABEL } from '../components/evp/format';
+import { PriorityBadge, fmtS, STATUS_LABEL, REQUEST_LABEL, UnitStatusBadge } from '../components/evp/format';
 import { MOVE_LABEL } from '../evp/junctions';
 
 const PRIORITIES = ['Critical', 'Urgent', 'Non-urgent'];
@@ -48,10 +48,11 @@ function SignalStatus({ trip }) {
   let head = 'Approaching';
   let big = n.greenIn == null ? 'Predicting…' : n.greenIn < 1 ? 'Requesting green…' : `Green in ${Math.round(n.greenIn)} s`;
   if (n.request === 'GREEN') { cls = 'is-green'; head = 'Green held for you'; big = 'GREEN: proceed with caution'; }
-  else if (n.request === 'SENT') { head = 'Requested'; big = `Green in ${Math.max(1, Math.round(n.greenIn ?? 0))} s`; }
+  else if (n.request === 'SENT') { head = 'Requested'; big = n.greenIn < 1 ? 'Green now' : `Green in ${Math.round(n.greenIn)} s`; }
   else if (n.request === 'YIELDING') { cls = 'is-hold'; head = 'Priority conflict'; big = `HOLD: yielding to ${n.yieldTo || 'higher priority'}`; }
   else if (n.request === 'BLOCKED') { cls = 'is-blocked'; head = 'Request blocked'; big = 'Signals running normally'; }
   else if (n.request === 'CANCELLED') { cls = 'is-hold'; head = 'Request cancelled'; big = 'Re-requests when moving'; }
+  else if (n.request === 'RELEASED') { cls = 'is-idle'; head = 'Released'; big = 'Signals back to SCATS'; }
   return (
     <div className={`signal-card ${cls}`} role="status" aria-live="polite">
       <div className="flex items-start justify-between gap-3">
@@ -75,11 +76,14 @@ function SignalStatus({ trip }) {
 }
 
 function ActiveTrip({ trip, engine, data, theme }) {
-  const veh = useSim().vehicles.find((v) => v.id === trip.vehicleId);
+  const snap = useSim();
+  const veh = snap.vehicles.find((v) => v.id === trip.vehicleId);
+  const [confirmEnd, setConfirmEnd] = useState(false);
   const route = useMemo(() => engine.routeLatLngs(trip.id), [engine, trip.id, trip.routeVersion]); // eslint-disable-line react-hooks/exhaustive-deps
   const nextJ = trip.next ? data.junctions.find((j) => j.id === trip.next.j) : null;
-  const jStates = useSim().junctions;
+  const jStates = snap.junctions;
   const dest = data.hospitals.find((h) => h.id === trip.destination.id);
+  useEffect(() => { if (!confirmEnd) return undefined; const t = setTimeout(() => setConfirmEnd(false), 4000); return () => clearTimeout(t); }, [confirmEnd]);
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px] gap-3 p-3">
       <div className="space-y-3">
@@ -88,7 +92,7 @@ function ActiveTrip({ trip, engine, data, theme }) {
           <Badge tone="neutral">{STATUS_LABEL[trip.status]}</Badge>
           <span className="text-sm font-semibold text-fg">→ {trip.destination.name}</span>
           <span className="flex-1" />
-          <span className="text-xs text-fg-faint">{fmtS(trip.elapsed)} · {(trip.remaining / 1000).toFixed(1)} km left</span>
+          <span className="text-xs text-fg-faint">{fmtS(trip.elapsed)} · {(trip.remaining / 1000).toFixed(1)} km left · arrive in ~{fmtS(trip.etaDest, { short: true })}</span>
         </div>
         <SignalStatus trip={trip} />
         <div className="card p-3">
@@ -101,8 +105,8 @@ function ActiveTrip({ trip, engine, data, theme }) {
                   <span className="w-8 font-bold text-fg">{c.j}</span>
                   <span className="flex-1 truncate text-fg-muted">{j?.name}</span>
                   <span className="text-fg-faint">{moveGlyph(c.move)}</span>
-                  <Badge tone={c.passed ? 'success' : c.request === 'GREEN' ? 'success' : c.request === 'SENT' ? 'primary' : c.request === 'YIELDING' ? 'warning' : c.request === 'BLOCKED' ? 'danger' : 'neutral'}>
-                    {c.passed ? `Passed${c.wait > 1 ? ` · waited ${Math.round(c.wait)} s` : ''}` : REQUEST_LABEL[c.request] || (c.eta != null ? `ETA ${Math.round(c.eta)} s` : 'Ahead')}
+                  <Badge tone={c.passed ? (c.wait > 1 ? 'warning' : 'success') : c.request === 'GREEN' ? 'success' : c.request === 'SENT' ? 'primary' : c.request === 'YIELDING' ? 'warning' : c.request === 'BLOCKED' ? 'danger' : 'neutral'}>
+                    {c.passed ? `Passed${c.wait > 1 ? ` · waited ${Math.round(c.wait)} s` : ' on green'}` : REQUEST_LABEL[c.request] || (c.eta != null ? `ETA ${Math.round(c.eta)} s` : 'Ahead')}
                   </Badge>
                 </div>
               );
@@ -112,7 +116,7 @@ function ActiveTrip({ trip, engine, data, theme }) {
         </div>
       </div>
       <div className="space-y-3">
-        <div className="card overflow-hidden" style={{ height: 300 }}>
+        <div className="card overflow-hidden isolate" style={{ height: 300 }}>
           <MapContainer center={veh ? [veh.lat, veh.lng] : [1.535, 110.36]} zoom={16} zoomControl={false} attributionControl={false} style={{ height: '100%', width: '100%' }}>
             <BaseTiles theme={theme} />
             {route && <Polyline positions={route} pathOptions={{ color: resolveColor('primary'), weight: 5, opacity: 0.85 }} />}
@@ -126,8 +130,10 @@ function ActiveTrip({ trip, engine, data, theme }) {
           <Button variant="secondary" icon="stop" onClick={() => engine.stopVehicle(trip.vehicleId, 40)}>Stop 40 s</Button>
           <Button variant="secondary" icon="route" onClick={() => engine.divert(trip.vehicleId)}>Divert</Button>
         </div>
-        <Button variant="danger" block size="lg" icon="close" onClick={() => engine.endTrip(trip.id, 'Ended by crew')}>END TRIP</Button>
-        <p className="text-[10.5px] text-fg-faint">Stop / Divert are demo controls: they test the "cancel after 20 s" rule.</p>
+        <Button variant="danger" block size="lg" icon="close" onClick={() => (confirmEnd ? engine.endTrip(trip.id, 'Ended by crew') : setConfirmEnd(true))}>
+          {confirmEnd ? 'TAP AGAIN TO END TRIP' : 'END TRIP'}
+        </Button>
+        <p className="text-[10.5px] text-fg-faint">Stop / Divert are demo controls: they test the "cancel after 20 s" rule. The trip ends by itself on arrival.</p>
       </div>
     </div>
   );
@@ -144,11 +150,14 @@ function saveSession(s) {
 }
 
 export default function Tablet() {
-  const { data, engine, liveTrips } = useData();
+  const { data, engine, ops, liveTrips } = useData();
   const snap = useSim();
   const { theme } = useTheme();
+  const [params, setParams] = useSearchParams();
   const [session] = useState(loadSession);
-  const [vehicleId, setVehicleId] = useState(session?.vehicleId || 'AMB-11');
+  const wanted = params.get('vehicle');
+  const [wantedOnce] = useState(wanted);
+  const [vehicleId, setVehicleId] = useState((!session && data.ambulances.some((a) => a.id === wanted) && wanted) || session?.vehicleId || 'AMB-11');
   const [crew, setCrew] = useState(session?.crew || 'MA-0412');
   const [pin, setPin] = useState('');
   const [loggedIn, setLoggedInState] = useState(Boolean(session));
@@ -166,20 +175,33 @@ export default function Tablet() {
   const lastTrip = liveTrips.find((t) => t.ambulanceId === vehicleId);
   const quarantined = snap?.quarantined.includes(vehicleId);
   const base = data.bases.find((b) => b.id === amb?.base);
+  const mission = snap?.ops?.missions.find((m) => m.vehicleId === vehicleId);
 
-  // Default the pickup point to a busy corridor so the SGH demo crosses several junctions.
+  // A unit signed in on the tablet is the crew's: live dispatch does not assign it calls.
   useEffect(() => {
-    if (!originId && data.places.length) setOriginId((data.places.find((p) => p.name === 'Northbank') || data.places[0]).id);
-  }, [data.places, originId]);
+    if (!loggedIn || !ops) return undefined;
+    ops.reserve(vehicleId);
+    return () => ops.release(vehicleId);
+  }, [loggedIn, vehicleId, ops]);
+  // ?vehicle= from the map is consumed once.
+  useEffect(() => { if (wanted) setParams({}, { replace: true }); }, [wanted, setParams]);
+
+  // Default pickup: where the unit is now if that is a known place, else a busy corridor for the SGH demo.
+  useEffect(() => {
+    const here = data.places.find((p) => p.name === vehSnap?.location);
+    if (here && !trip) setOriginId(here.id);
+    else if (!originId && data.places.length) setOriginId((data.places.find((p) => p.name === 'Northbank') || data.places[0]).id);
+  }, [data.places, originId, vehSnap?.location, trip]);
 
   const start = () => {
     setError(null);
     try {
       const origin = data.places.find((p) => p.id === originId);
-      if (origin && status !== 'RETURNING') engine.placeVehicle(vehicleId, origin.node, origin.name);
+      // To hospital: the crew is at the pickup. To patient: drive from where the unit is now.
+      if (origin && status === 'TO_HOSPITAL') engine.placeVehicle(vehicleId, origin.node, origin.name);
       const destination = status === 'TO_HOSPITAL' ? { type: 'hospital', id: hospitalId }
         : status === 'TO_PATIENT' ? { type: 'place', id: placeId } : { type: 'place', id: amb.base };
-      engine.startTrip({ vehicleId, status, priority, destination, originName: status !== 'RETURNING' ? origin?.name : undefined, crew });
+      engine.startTrip({ vehicleId, status, priority, destination, originName: status === 'TO_HOSPITAL' ? origin?.name : vehSnap?.location, crew, source: 'tablet' });
     } catch (e) { setError(e.message); }
   };
 
@@ -208,13 +230,20 @@ export default function Tablet() {
         <span className="text-base font-bold text-fg">{vehicleId}</span>
         <span className="text-xs text-fg-faint">{amb.callsign} · crew {crew} · at {vehSnap?.location}</span>
         <span className="flex-1" />
+        {vehSnap && !quarantined && <UnitStatusBadge status={vehSnap.status} />}
         {quarantined && <Badge tone="danger" dot>EVP suspended by control</Badge>}
         <Button size="sm" variant="ghost" icon="logout" onClick={() => { setLoggedIn(false); setPin(''); }}>Sign out</Button>
       </div>
+      {wantedOnce && wantedOnce !== vehicleId && <p className="tile tone-info text-xs">This tablet is signed in to {vehicleId}. Sign out to use {wantedOnce}.</p>}
+      {mission && (
+        <p className="tile tone-accent text-xs">{mission.id}: {mission.priority} call at {mission.place} · {mission.stageLabel}. {mission.stage === 'ON_SCENE' ? 'Choose To hospital and press START when the patient is loaded (otherwise control conveys automatically).' : mission.stage === 'HANDOVER' ? 'Handing over at the hospital; the unit returns to base afterwards.' : ''}</p>
+      )}
+      {vehSnap?.status === 'REPOSITIONING' && <p className="tile text-xs">Driving to {vehSnap.driveTo} without EVP. Pressing START gives the unit a new job from where it is now.</p>}
+      {quarantined && <p className="tile tone-danger text-xs">The anomaly guard has suspended EVP for this unit. A trip can start, but no greens will be requested until control reinstates it.</p>}
       {lastTrip && (
         <div className="tile tone-success text-xs flex items-center gap-3 flex-wrap">
           <Icon name="check" size={16} />
-          <span className="flex-1">Last trip {lastTrip.id} to {lastTrip.destinationName}: {fmtS(lastTrip.duration)}, <b>{Math.round(lastTrip.saved)} s saved</b> across {lastTrip.junctions.length} junctions.</span>
+          <span className="flex-1">Last trip {lastTrip.id} to {lastTrip.destinationName}: {fmtS(lastTrip.duration)}{lastTrip.arrived === false ? ' (ended before arrival)' : ''}, <b>{Math.round(lastTrip.saved)} s saved</b> across {lastTrip.junctions.length} junction{lastTrip.junctions.length === 1 ? '' : 's'}.</span>
           <Link to={`/assistant?trip=${lastTrip.id}`} className="link-btn">POST-TRIP REPORT</Link>
         </div>
       )}
@@ -223,12 +252,15 @@ export default function Tablet() {
         <Tabs tabs={STATUSES} value={status} onChange={setStatus} />
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {status !== 'RETURNING' && (
-          <label className="block"><span className="label-caps field-label">{status === 'TO_HOSPITAL' ? 'Patient pickup (current location)' : 'Current location'}</span>
+        {status === 'TO_HOSPITAL' && (
+          <label className="block"><span className="label-caps field-label">Patient pickup (current location)</span>
             <select className="select" value={originId} onChange={(e) => setOriginId(e.target.value)}>
               {data.places.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </label>
+        )}
+        {status === 'TO_PATIENT' && (
+          <div><span className="label-caps field-label">From (GPS)</span><p className="tile text-xs">{vehSnap?.location || 'Current position'}</p></div>
         )}
         {status === 'TO_HOSPITAL' && (
           <label className="block"><span className="label-caps field-label">Destination hospital</span>

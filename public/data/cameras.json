@@ -1,0 +1,1068 @@
+{
+  "note": "Stand-in footage. MBKS junction cameras are not connected to this prototype; each camera plays an openly licensed clip filmed elsewhere from a fixed, elevated viewpoint (clips from right-hand-traffic countries are mirrored so traffic keeps left, unless they show legible signs). Overlays (time, signal state, queue, EVP status, rain, night mode) come from the live twin.",
+  "source": "Wikimedia Commons and Coverr",
+  "generatedBy": "scripts/fetch-cctv.mjs",
+  "clips": [
+    {
+      "id": "bengaluru-banashankari-a",
+      "kind": "junction",
+      "src": "cctv/bengaluru-banashankari-a.mp4",
+      "poster": "cctv/bengaluru-banashankari-a.jpg",
+      "width": 640,
+      "height": 360,
+      "fps": 15,
+      "durationS": 9.3,
+      "mirrored": false,
+      "footage": {
+        "provider": "Wikimedia Commons",
+        "title": "Banashankari traffic circle, Banashankari, Bangalore (2024) 02.ogg",
+        "place": "Banashankari, Bengaluru, India",
+        "author": "Gpkp",
+        "licence": "CC BY-SA 4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:Banashankari_traffic_circle,_Banashankari,_Bangalore_(2024)_02.ogg",
+        "recorded": "2024-08-31",
+        "original": "1920×1080",
+        "changes": "Cut to 19–29.3 s of the original, cropped to 16:9, scaled to 640×360 at 15 fps, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point."
+      }
+    },
+    {
+      "id": "bengaluru-bda-junction",
+      "kind": "junction",
+      "src": "cctv/bengaluru-bda-junction.mp4",
+      "poster": "cctv/bengaluru-bda-junction.jpg",
+      "width": 640,
+      "height": 360,
+      "fps": 15,
+      "durationS": 29,
+      "mirrored": false,
+      "footage": {
+        "provider": "Wikimedia Commons",
+        "title": "Top view of BDA link road junction, Banashankari 6th stage, Bengaluru (2026).webm",
+        "place": "Banashankari 6th Stage, Bengaluru, India",
+        "author": "Gpkp",
+        "licence": "CC BY-SA 4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:Top_view_of_BDA_link_road_junction,_Banashankari_6th_stage,_Bengaluru_(2026).webm",
+        "recorded": "2026-09-21",
+        "original": "1920×1080",
+        "changes": "Cut to 0–30 s of the original, cropped to 16:9, scaled to 640×360 at 15 fps, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point."
+      }
+    },
+    {
+      "id": "coverr-road-traffic",
+      "kind": "junction",
+      "src": "cctv/coverr-road-traffic.mp4",
+      "poster": "cctv/coverr-road-traffic.jpg",
+      "width": 640,
+      "height": 360,
+      "fps": 15,
+      "durationS": 17.8,
+      "mirrored": true,
+      "footage": {
+        "provider": "Coverr",
+        "title": "Road traffic",
+        "place": null,
+        "author": "Coverr",
+        "licence": "Coverr License",
+        "licenceUrl": "https://coverr.co/license",
+        "sourceUrl": "https://coverr.co/videos/road-traffic-0blhjb3eik",
+        "recorded": null,
+        "original": "640×360",
+        "changes": "Cut to 0–18.8 s of the 360p download, cropped to 16:9, scaled to 640×360 at 15 fps, mirrored left to right so traffic keeps left as in Malaysia, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point."
+      }
+    },
+    {
+      "id": "tokyo-shinanomachi",
+      "kind": "street",
+      "src": "cctv/tokyo-shinanomachi.mp4",
+      "poster": "cctv/tokyo-shinanomachi.jpg",
+      "width": 640,
+      "height": 360,
+      "fps": 15,
+      "durationS": 7.5,
+      "mirrored": false,
+      "footage": {
+        "provider": "Wikimedia Commons",
+        "title": "Southeast view from the Shinanomachi Station footbridge, 9 December 2024.webm",
+        "place": "Shinanomachi, Shinjuku, Tokyo, Japan",
+        "author": "Yuet Man Lee",
+        "licence": "CC BY-SA 4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:Southeast_view_from_the_Shinanomachi_Station_footbridge,_9_December_2024.webm",
+        "recorded": "2024-12-09",
+        "original": "1920×1080",
+        "changes": "Cut to 0–8.5 s of the original, cropped to 16:9, scaled to 640×360 at 15 fps, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point."
+      }
+    },
+    {
+      "id": "cuttack-link-road",
+      "kind": "street",
+      "src": "cctv/cuttack-link-road.mp4",
+      "poster": "cctv/cuttack-link-road.jpg",
+      "width": 640,
+      "height": 360,
+      "fps": 15,
+      "durationS": 29,
+      "mirrored": false,
+      "footage": {
+        "provider": "Wikimedia Commons",
+        "title": "Moving vehicles in Link road, Cuttack, Odisha.webm",
+        "place": "Link Road, Cuttack, Odisha, India",
+        "author": "Subhashish Panigrahi",
+        "licence": "CC BY-SA 3.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:Moving_vehicles_in_Link_road,_Cuttack,_Odisha.webm",
+        "recorded": "2013-12-26",
+        "original": "1080×606",
+        "changes": "Cut to 10–40 s of the original, cropped to 16:9, scaled to 640×360 at 15 fps, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point."
+      }
+    },
+    {
+      "id": "hcmc-district-7",
+      "kind": "street",
+      "src": "cctv/hcmc-district-7.mp4",
+      "poster": "cctv/hcmc-district-7.jpg",
+      "width": 640,
+      "height": 360,
+      "fps": 15,
+      "durationS": 7.4,
+      "mirrored": true,
+      "footage": {
+        "provider": "Wikimedia Commons",
+        "title": "Traffic-d7-high.webm",
+        "place": "District 7, Ho Chi Minh City, Vietnam",
+        "author": "Karel Bilek",
+        "licence": "CC BY-SA 4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:Traffic-d7-high.webm",
+        "recorded": "2019-05-29",
+        "original": "1920×1080",
+        "changes": "Cut to 0–8.4 s of the original, cropped to 16:9, scaled to 640×360 at 15 fps, mirrored left to right so traffic keeps left as in Malaysia, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point."
+      }
+    },
+    {
+      "id": "coverr-vilnius-crossing",
+      "kind": "street",
+      "src": "cctv/coverr-vilnius-crossing.mp4",
+      "poster": "cctv/coverr-vilnius-crossing.jpg",
+      "width": 640,
+      "height": 360,
+      "fps": 15,
+      "durationS": 13.1,
+      "mirrored": true,
+      "footage": {
+        "provider": "Coverr",
+        "title": "People crossing the street on Gedinimo Avenue",
+        "place": "Gediminas Avenue, Vilnius, Lithuania",
+        "author": "Coverr",
+        "licence": "Coverr License",
+        "licenceUrl": "https://coverr.co/license",
+        "sourceUrl": "https://coverr.co/videos/people-crossing-the-street-on-gedinimo-avenue-lld3amgmdb",
+        "recorded": null,
+        "original": "640×336",
+        "changes": "Cut to 0–14.1 s of the 360p download, cropped to 16:9, scaled to 640×360 at 15 fps, mirrored left to right so traffic keeps left as in Malaysia, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point."
+      }
+    },
+    {
+      "id": "coverr-nyc-downtown",
+      "kind": "street",
+      "src": "cctv/coverr-nyc-downtown.mp4",
+      "poster": "cctv/coverr-nyc-downtown.jpg",
+      "width": 640,
+      "height": 360,
+      "fps": 15,
+      "durationS": 11.3,
+      "mirrored": true,
+      "footage": {
+        "provider": "Coverr",
+        "title": "Traffic in downtown NYC",
+        "place": "New York City, USA",
+        "author": "Coverr",
+        "licence": "Coverr License",
+        "licenceUrl": "https://coverr.co/license",
+        "sourceUrl": "https://coverr.co/videos/traffic-in-downtown-nyc-lxzezmug1m",
+        "recorded": null,
+        "original": "640×360",
+        "changes": "Cut to 0–12.3 s of the 360p download, cropped to 16:9, scaled to 640×360 at 15 fps, mirrored left to right so traffic keeps left as in Malaysia, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point."
+      }
+    },
+    {
+      "id": "tbilisi-embankment",
+      "kind": "street",
+      "src": "cctv/tbilisi-embankment.mp4",
+      "poster": "cctv/tbilisi-embankment.jpg",
+      "width": 640,
+      "height": 360,
+      "fps": 15,
+      "durationS": 15.9,
+      "mirrored": true,
+      "footage": {
+        "provider": "Wikimedia Commons",
+        "title": "Tbilisi (3).ogv",
+        "place": "Heydar Aliyev Right Embankment, Tbilisi, Georgia",
+        "author": "Mostafameraji",
+        "licence": "CC BY-SA 4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:Tbilisi_(3).ogv",
+        "recorded": "2017-10-11",
+        "original": "1920×1080",
+        "changes": "Cut to 0–16.9 s of the original, cropped to 16:9, scaled to 640×360 at 15 fps, mirrored left to right so traffic keeps left as in Malaysia, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point."
+      }
+    },
+    {
+      "id": "gothenburg-garda",
+      "kind": "arterial",
+      "src": "cctv/gothenburg-garda.mp4",
+      "poster": "cctv/gothenburg-garda.jpg",
+      "width": 640,
+      "height": 360,
+      "fps": 15,
+      "durationS": 33.5,
+      "mirrored": true,
+      "footage": {
+        "provider": "Wikimedia Commons",
+        "title": "Changing lanes in Gothenburg ubt.ogv",
+        "place": "Gårda, Gothenburg, Sweden",
+        "author": "Tomasz Sienicki (tsca)",
+        "licence": "CC BY 3.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by/3.0",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:Changing_lanes_in_Gothenburg_ubt.ogv",
+        "recorded": "2009-07-25",
+        "original": "640×480",
+        "changes": "Cut to 0–34.5 s of the original, cropped to 16:9, scaled to 640×360 at 15 fps, mirrored left to right so traffic keeps left as in Malaysia, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point."
+      }
+    },
+    {
+      "id": "bengaluru-nice-road-a",
+      "kind": "arterial",
+      "src": "cctv/bengaluru-nice-road-a.mp4",
+      "poster": "cctv/bengaluru-nice-road-a.jpg",
+      "width": 640,
+      "height": 360,
+      "fps": 15,
+      "durationS": 29,
+      "mirrored": false,
+      "footage": {
+        "provider": "Wikimedia Commons",
+        "title": "NICE Road Clover leaf junction (2025) 05.webm",
+        "place": "NICE Road, Bengaluru, India",
+        "author": "Gpkp",
+        "licence": "CC BY-SA 4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:NICE_Road_Clover_leaf_junction_(2025)_05.webm",
+        "recorded": "2025-08-04",
+        "original": "1920×1080",
+        "changes": "Cut to 2–32 s of the original, cropped to 16:9, scaled to 640×360 at 15 fps, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point."
+      }
+    },
+    {
+      "id": "bengaluru-nice-road-b",
+      "kind": "arterial",
+      "src": "cctv/bengaluru-nice-road-b.mp4",
+      "poster": "cctv/bengaluru-nice-road-b.jpg",
+      "width": 640,
+      "height": 360,
+      "fps": 15,
+      "durationS": 29,
+      "mirrored": false,
+      "footage": {
+        "provider": "Wikimedia Commons",
+        "title": "NICE Road Clover leaf junction (2025) 04.webm",
+        "place": "NICE Road, Bengaluru, India",
+        "author": "Gpkp",
+        "licence": "CC BY-SA 4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:NICE_Road_Clover_leaf_junction_(2025)_04.webm",
+        "recorded": "2025-06-06",
+        "original": "1920×1080",
+        "changes": "Cut to 0–30 s of the original, cropped to 16:9, scaled to 640×360 at 15 fps, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point."
+      }
+    },
+    {
+      "id": "liverpool-m62",
+      "kind": "expressway",
+      "src": "cctv/liverpool-m62.mp4",
+      "poster": "cctv/liverpool-m62.jpg",
+      "width": 640,
+      "height": 360,
+      "fps": 15,
+      "durationS": 29.7,
+      "mirrored": false,
+      "footage": {
+        "provider": "Wikimedia Commons",
+        "title": "M62 motorway from the Greystone Road footbridge.ogv",
+        "place": "M62 motorway, Broadgreen, Liverpool, UK",
+        "author": "Rept0n1x",
+        "licence": "CC BY-SA 3.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:M62_motorway_from_the_Greystone_Road_footbridge.ogv",
+        "recorded": "2012-05-13",
+        "original": "1280×720",
+        "changes": "Cut to 0–30.7 s of the original, cropped to 16:9, scaled to 640×360 at 15 fps, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point."
+      }
+    },
+    {
+      "id": "dortmund-a40",
+      "kind": "expressway",
+      "src": "cctv/dortmund-a40.mp4",
+      "poster": "cctv/dortmund-a40.jpg",
+      "width": 640,
+      "height": 360,
+      "fps": 15,
+      "durationS": 23.5,
+      "mirrored": true,
+      "footage": {
+        "provider": "Wikimedia Commons",
+        "title": "Motorway A40 - on bridge above the traffic.webm",
+        "place": "A40 motorway, Dortmund, Germany",
+        "author": "Kathinka Engels",
+        "licence": "CC BY 3.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by/3.0",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:Motorway_A40_-_on_bridge_above_the_traffic.webm",
+        "recorded": "2010s",
+        "original": "1280×720",
+        "changes": "Cut to 0–24.5 s of the original, cropped to 16:9, scaled to 640×360 at 15 fps, mirrored left to right so traffic keeps left as in Malaysia, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point."
+      }
+    },
+    {
+      "id": "bethesda-i495",
+      "kind": "expressway",
+      "src": "cctv/bethesda-i495.mp4",
+      "poster": "cctv/bethesda-i495.jpg",
+      "width": 640,
+      "height": 360,
+      "fps": 15,
+      "durationS": 29,
+      "mirrored": true,
+      "footage": {
+        "provider": "Wikimedia Commons",
+        "title": "I495 towards i270 spur from bradley blvd 20201123 171152609.webm",
+        "place": "I-495 from Bradley Boulevard, Bethesda, Maryland, USA",
+        "author": "G. Edward Johnson",
+        "licence": "CC BY 4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by/4.0",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:I495_towards_i270_spur_from_bradley_blvd_20201123_171152609.webm",
+        "recorded": "2020-11-23",
+        "original": "3840×2160",
+        "changes": "Cut to 0–30 s of the original, cropped to 16:9, scaled to 640×360 at 15 fps, mirrored left to right so traffic keeps left as in Malaysia, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point."
+      }
+    },
+    {
+      "id": "chicago-jane-byrne",
+      "kind": "expressway",
+      "src": "cctv/chicago-jane-byrne.mp4",
+      "poster": "cctv/chicago-jane-byrne.jpg",
+      "width": 640,
+      "height": 360,
+      "fps": 15,
+      "durationS": 31,
+      "mirrored": true,
+      "footage": {
+        "provider": "Wikimedia Commons",
+        "title": "Jane M. Bryne Interchange 4-1-22.webm",
+        "place": "Jane Byrne Interchange, Chicago, USA",
+        "author": "Sea Cow",
+        "licence": "CC BY-SA 4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:Jane_M._Bryne_Interchange_4-1-22.webm",
+        "recorded": "2022-04-01",
+        "original": "2704×1520",
+        "changes": "Cut to 0–32 s of the original, cropped to 16:9, scaled to 640×360 at 15 fps, mirrored left to right so traffic keeps left as in Malaysia, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point."
+      }
+    },
+    {
+      "id": "tel-aviv-ayalon-a",
+      "kind": "expressway",
+      "src": "cctv/tel-aviv-ayalon-a.mp4",
+      "poster": "cctv/tel-aviv-ayalon-a.jpg",
+      "width": 640,
+      "height": 360,
+      "fps": 15,
+      "durationS": 5,
+      "mirrored": false,
+      "footage": {
+        "provider": "Wikimedia Commons",
+        "title": "Ayalon Freeway Azriely Towers View P1150161.ogv",
+        "place": "Ayalon Freeway, Tel Aviv, Israel",
+        "author": "Deror_avi",
+        "licence": "CC BY-SA 3.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:Ayalon_Freeway_Azriely_Towers_View_P1150161.ogv",
+        "recorded": null,
+        "original": "1280×720",
+        "changes": "Cut to 0–6 s of the original, cropped to 16:9, scaled to 640×360 at 15 fps, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point."
+      }
+    },
+    {
+      "id": "tel-aviv-ayalon-b",
+      "kind": "expressway",
+      "src": "cctv/tel-aviv-ayalon-b.mp4",
+      "poster": "cctv/tel-aviv-ayalon-b.jpg",
+      "width": 640,
+      "height": 360,
+      "fps": 15,
+      "durationS": 9,
+      "mirrored": false,
+      "footage": {
+        "provider": "Wikimedia Commons",
+        "title": "Ayalon Freeway Azriely Towers View P1150162.ogv",
+        "place": "Ayalon Freeway, Tel Aviv, Israel",
+        "author": "Deror_avi",
+        "licence": "CC BY-SA 3.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:Ayalon_Freeway_Azriely_Towers_View_P1150162.ogv",
+        "recorded": null,
+        "original": "1280×720",
+        "changes": "Cut to 0–10 s of the original, cropped to 16:9, scaled to 640×360 at 15 fps, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point."
+      }
+    },
+    {
+      "id": "coverr-highway-overhead",
+      "kind": "expressway",
+      "src": "cctv/coverr-highway-overhead.mp4",
+      "poster": "cctv/coverr-highway-overhead.jpg",
+      "width": 640,
+      "height": 360,
+      "fps": 15,
+      "durationS": 12,
+      "mirrored": true,
+      "footage": {
+        "provider": "Coverr",
+        "title": "Overhead view of the highway",
+        "place": null,
+        "author": "Coverr",
+        "licence": "Coverr License",
+        "licenceUrl": "https://coverr.co/license",
+        "sourceUrl": "https://coverr.co/videos/overhead-view-of-the-highway-9ejgoxnsm3",
+        "recorded": null,
+        "original": "640×1136",
+        "changes": "Cut to 0–13 s of the 360p download, cropped to 16:9, scaled to 640×360 at 15 fps, mirrored left to right so traffic keeps left as in Malaysia, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point."
+      }
+    },
+    {
+      "id": "coverr-highway-bridge",
+      "kind": "expressway",
+      "src": "cctv/coverr-highway-bridge.mp4",
+      "poster": "cctv/coverr-highway-bridge.jpg",
+      "width": 640,
+      "height": 360,
+      "fps": 15,
+      "durationS": 12.5,
+      "mirrored": true,
+      "footage": {
+        "provider": "Coverr",
+        "title": "Cars on the highway",
+        "place": null,
+        "author": "Coverr",
+        "licence": "Coverr License",
+        "licenceUrl": "https://coverr.co/license",
+        "sourceUrl": "https://coverr.co/videos/cars-on-the-highway-axikfcuht6",
+        "recorded": null,
+        "original": "640×1136",
+        "changes": "Cut to 0–13.5 s of the 360p download, cropped to 16:9, scaled to 640×360 at 15 fps, mirrored left to right so traffic keeps left as in Malaysia, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point."
+      }
+    },
+    {
+      "id": "bengaluru-banashankari-ptz",
+      "kind": "junction",
+      "src": "cctv/bengaluru-banashankari-ptz.mp4",
+      "poster": "cctv/bengaluru-banashankari-ptz.jpg",
+      "width": 640,
+      "height": 360,
+      "fps": 15,
+      "durationS": 22,
+      "mirrored": false,
+      "footage": {
+        "provider": "Wikimedia Commons",
+        "title": "Banashankari traffic circle, Banashankari, Bangalore (2024) 01.ogg",
+        "place": "Banashankari, Bengaluru, India",
+        "author": "Gpkp",
+        "licence": "CC BY-SA 4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:Banashankari_traffic_circle,_Banashankari,_Bangalore_(2024)_01.ogg",
+        "recorded": "2024-08-31",
+        "original": "1920×1080",
+        "changes": "Cut to 0–22 s of the original, cropped to 16:9, scaled to 640×360 at 15 fps, colour muted, noise and vignette added to match a CCTV camera, audio removed."
+      }
+    },
+    {
+      "id": "bengaluru-nice-road-ptz",
+      "kind": "arterial",
+      "src": "cctv/bengaluru-nice-road-ptz.mp4",
+      "poster": "cctv/bengaluru-nice-road-ptz.jpg",
+      "width": 640,
+      "height": 360,
+      "fps": 15,
+      "durationS": 15.2,
+      "mirrored": false,
+      "footage": {
+        "provider": "Wikimedia Commons",
+        "title": "NICE Road Clover leaf junction (2025) 06.webm",
+        "place": "NICE Road, Bengaluru, India",
+        "author": "Gpkp",
+        "licence": "CC BY-SA 4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:NICE_Road_Clover_leaf_junction_(2025)_06.webm",
+        "recorded": "2025-08-04",
+        "original": "1920×1080",
+        "changes": "Cut to 0–15.2 s of the original, cropped to 16:9, scaled to 640×360 at 15 fps, colour muted, noise and vignette added to match a CCTV camera, audio removed."
+      }
+    }
+  ],
+  "cameras": [
+    {
+      "id": "CAM-J01-NE",
+      "junctionId": "J01",
+      "arm": "NE",
+      "type": "Fixed",
+      "clip": "liverpool-m62"
+    },
+    {
+      "id": "CAM-J01-SE",
+      "junctionId": "J01",
+      "arm": "SE",
+      "type": "Fixed",
+      "clip": "dortmund-a40"
+    },
+    {
+      "id": "CAM-J01-SW",
+      "junctionId": "J01",
+      "arm": "SW",
+      "type": "Fixed",
+      "clip": "gothenburg-garda"
+    },
+    {
+      "id": "CAM-J01-NW",
+      "junctionId": "J01",
+      "arm": "NW",
+      "type": "Fixed",
+      "clip": "bengaluru-nice-road-a"
+    },
+    {
+      "id": "CAM-J02-NE",
+      "junctionId": "J02",
+      "arm": "NE",
+      "type": "Fixed",
+      "clip": "bengaluru-nice-road-b"
+    },
+    {
+      "id": "CAM-J02-SE",
+      "junctionId": "J02",
+      "arm": "SE",
+      "type": "Fixed",
+      "clip": "bethesda-i495"
+    },
+    {
+      "id": "CAM-J02-SW",
+      "junctionId": "J02",
+      "arm": "SW",
+      "type": "Fixed",
+      "clip": "bengaluru-nice-road-ptz"
+    },
+    {
+      "id": "CAM-J02-NW",
+      "junctionId": "J02",
+      "arm": "NW",
+      "type": "Fixed",
+      "clip": "chicago-jane-byrne"
+    },
+    {
+      "id": "CAM-J03-NE",
+      "junctionId": "J03",
+      "arm": "NE",
+      "type": "Fixed",
+      "clip": "tokyo-shinanomachi"
+    },
+    {
+      "id": "CAM-J03-SE",
+      "junctionId": "J03",
+      "arm": "SE",
+      "type": "Fixed",
+      "clip": "cuttack-link-road"
+    },
+    {
+      "id": "CAM-J03-SW",
+      "junctionId": "J03",
+      "arm": "SW",
+      "type": "Fixed",
+      "clip": "hcmc-district-7"
+    },
+    {
+      "id": "CAM-J03-NW",
+      "junctionId": "J03",
+      "arm": "NW",
+      "type": "Fixed",
+      "clip": "coverr-vilnius-crossing"
+    },
+    {
+      "id": "CAM-J04-N",
+      "junctionId": "J04",
+      "arm": "N",
+      "type": "Fixed",
+      "clip": "tel-aviv-ayalon-a"
+    },
+    {
+      "id": "CAM-J04-SE",
+      "junctionId": "J04",
+      "arm": "SE",
+      "type": "Fixed",
+      "clip": "tel-aviv-ayalon-b"
+    },
+    {
+      "id": "CAM-J04-S",
+      "junctionId": "J04",
+      "arm": "S",
+      "type": "Fixed",
+      "clip": "coverr-highway-overhead"
+    },
+    {
+      "id": "CAM-J04-NW",
+      "junctionId": "J04",
+      "arm": "NW",
+      "type": "Fixed",
+      "clip": "coverr-highway-bridge"
+    },
+    {
+      "id": "CAM-J05-N",
+      "junctionId": "J05",
+      "arm": "N",
+      "type": "Fixed",
+      "clip": "coverr-nyc-downtown"
+    },
+    {
+      "id": "CAM-J05-E",
+      "junctionId": "J05",
+      "arm": "E",
+      "type": "Fixed",
+      "clip": "tbilisi-embankment"
+    },
+    {
+      "id": "CAM-J05-W",
+      "junctionId": "J05",
+      "arm": "W",
+      "type": "Fixed",
+      "clip": "gothenburg-garda"
+    },
+    {
+      "id": "CAM-J06-NE",
+      "junctionId": "J06",
+      "arm": "NE",
+      "type": "Fixed",
+      "clip": "tokyo-shinanomachi"
+    },
+    {
+      "id": "CAM-J06-E",
+      "junctionId": "J06",
+      "arm": "E",
+      "type": "Fixed",
+      "clip": "bengaluru-nice-road-a"
+    },
+    {
+      "id": "CAM-J06-SW",
+      "junctionId": "J06",
+      "arm": "SW",
+      "type": "Fixed",
+      "clip": "cuttack-link-road"
+    },
+    {
+      "id": "CAM-J06-W",
+      "junctionId": "J06",
+      "arm": "W",
+      "type": "Fixed",
+      "clip": "bengaluru-nice-road-b"
+    },
+    {
+      "id": "CAM-J07-N",
+      "junctionId": "J07",
+      "arm": "N",
+      "type": "Fixed",
+      "clip": "liverpool-m62"
+    },
+    {
+      "id": "CAM-J07-E",
+      "junctionId": "J07",
+      "arm": "E",
+      "type": "Fixed",
+      "clip": "hcmc-district-7"
+    },
+    {
+      "id": "CAM-J07-S",
+      "junctionId": "J07",
+      "arm": "S",
+      "type": "Fixed",
+      "clip": "dortmund-a40"
+    },
+    {
+      "id": "CAM-J07-W",
+      "junctionId": "J07",
+      "arm": "W",
+      "type": "Fixed",
+      "clip": "coverr-vilnius-crossing"
+    },
+    {
+      "id": "CAM-J08-N",
+      "junctionId": "J08",
+      "arm": "N",
+      "type": "Fixed",
+      "clip": "coverr-nyc-downtown"
+    },
+    {
+      "id": "CAM-J08-S",
+      "junctionId": "J08",
+      "arm": "S",
+      "type": "Fixed",
+      "clip": "bethesda-i495"
+    },
+    {
+      "id": "CAM-J08-W",
+      "junctionId": "J08",
+      "arm": "W",
+      "type": "Fixed",
+      "clip": "chicago-jane-byrne"
+    },
+    {
+      "id": "CAM-J09-SE",
+      "junctionId": "J09",
+      "arm": "SE",
+      "type": "Fixed",
+      "clip": "bengaluru-nice-road-ptz"
+    },
+    {
+      "id": "CAM-J09-SW",
+      "junctionId": "J09",
+      "arm": "SW",
+      "type": "Fixed",
+      "clip": "tbilisi-embankment"
+    },
+    {
+      "id": "CAM-J09-NW",
+      "junctionId": "J09",
+      "arm": "NW",
+      "type": "Fixed",
+      "clip": "bengaluru-banashankari-a"
+    },
+    {
+      "id": "CAM-J10-NE",
+      "junctionId": "J10",
+      "arm": "NE",
+      "type": "Fixed",
+      "clip": "bengaluru-bda-junction"
+    },
+    {
+      "id": "CAM-J10-E",
+      "junctionId": "J10",
+      "arm": "E",
+      "type": "Fixed",
+      "clip": "coverr-road-traffic"
+    },
+    {
+      "id": "CAM-J10-SE",
+      "junctionId": "J10",
+      "arm": "SE",
+      "type": "Fixed",
+      "clip": "bengaluru-banashankari-ptz"
+    },
+    {
+      "id": "CAM-J10-SW",
+      "junctionId": "J10",
+      "arm": "SW",
+      "type": "Fixed",
+      "clip": "gothenburg-garda"
+    },
+    {
+      "id": "CAM-J11-NE",
+      "junctionId": "J11",
+      "arm": "NE",
+      "type": "Fixed",
+      "clip": "tokyo-shinanomachi"
+    },
+    {
+      "id": "CAM-J11-SE",
+      "junctionId": "J11",
+      "arm": "SE",
+      "type": "Fixed",
+      "clip": "tel-aviv-ayalon-a"
+    },
+    {
+      "id": "CAM-J11-SW",
+      "junctionId": "J11",
+      "arm": "SW",
+      "type": "Fixed",
+      "clip": "bengaluru-nice-road-a"
+    },
+    {
+      "id": "CAM-J11-NW",
+      "junctionId": "J11",
+      "arm": "NW",
+      "type": "Fixed",
+      "clip": "tel-aviv-ayalon-b"
+    },
+    {
+      "id": "CAM-J12-NE",
+      "junctionId": "J12",
+      "arm": "NE",
+      "type": "Fixed",
+      "clip": "cuttack-link-road"
+    },
+    {
+      "id": "CAM-J12-S",
+      "junctionId": "J12",
+      "arm": "S",
+      "type": "Fixed",
+      "clip": "bengaluru-nice-road-b"
+    },
+    {
+      "id": "CAM-J12-W",
+      "junctionId": "J12",
+      "arm": "W",
+      "type": "Fixed",
+      "clip": "hcmc-district-7"
+    },
+    {
+      "id": "CAM-J12-NW",
+      "junctionId": "J12",
+      "arm": "NW",
+      "type": "Fixed",
+      "clip": "bengaluru-nice-road-ptz"
+    },
+    {
+      "id": "CAM-J13-E",
+      "junctionId": "J13",
+      "arm": "E",
+      "type": "Fixed",
+      "clip": "coverr-vilnius-crossing"
+    },
+    {
+      "id": "CAM-J13-S",
+      "junctionId": "J13",
+      "arm": "S",
+      "type": "Fixed",
+      "clip": "coverr-nyc-downtown"
+    },
+    {
+      "id": "CAM-J13-NW",
+      "junctionId": "J13",
+      "arm": "NW",
+      "type": "Fixed",
+      "clip": "tbilisi-embankment"
+    },
+    {
+      "id": "CAM-J14-N",
+      "junctionId": "J14",
+      "arm": "N",
+      "type": "Fixed",
+      "clip": "bengaluru-banashankari-a"
+    },
+    {
+      "id": "CAM-J14-SE",
+      "junctionId": "J14",
+      "arm": "SE",
+      "type": "Fixed",
+      "clip": "bengaluru-bda-junction"
+    },
+    {
+      "id": "CAM-J14-W",
+      "junctionId": "J14",
+      "arm": "W",
+      "type": "Fixed",
+      "clip": "coverr-road-traffic"
+    },
+    {
+      "id": "CAM-J14-NW",
+      "junctionId": "J14",
+      "arm": "NW",
+      "type": "Fixed",
+      "clip": "bengaluru-banashankari-ptz"
+    },
+    {
+      "id": "CAM-J15-E",
+      "junctionId": "J15",
+      "arm": "E",
+      "type": "Fixed",
+      "clip": "gothenburg-garda"
+    },
+    {
+      "id": "CAM-J15-S",
+      "junctionId": "J15",
+      "arm": "S",
+      "type": "Fixed",
+      "clip": "tokyo-shinanomachi"
+    },
+    {
+      "id": "CAM-J15-W",
+      "junctionId": "J15",
+      "arm": "W",
+      "type": "Fixed",
+      "clip": "bengaluru-nice-road-a"
+    },
+    {
+      "id": "CAM-J15-N",
+      "junctionId": "J15",
+      "arm": "N",
+      "type": "Fixed",
+      "clip": "cuttack-link-road"
+    },
+    {
+      "id": "CAM-J16-NE",
+      "junctionId": "J16",
+      "arm": "NE",
+      "type": "Fixed",
+      "clip": "bengaluru-banashankari-a"
+    },
+    {
+      "id": "CAM-J16-SE",
+      "junctionId": "J16",
+      "arm": "SE",
+      "type": "Fixed",
+      "clip": "bengaluru-bda-junction"
+    },
+    {
+      "id": "CAM-J16-SW",
+      "junctionId": "J16",
+      "arm": "SW",
+      "type": "Fixed",
+      "clip": "coverr-road-traffic"
+    },
+    {
+      "id": "CAM-J16-NW",
+      "junctionId": "J16",
+      "arm": "NW",
+      "type": "Fixed",
+      "clip": "bengaluru-banashankari-ptz"
+    },
+    {
+      "id": "CAM-J17-NE",
+      "junctionId": "J17",
+      "arm": "NE",
+      "type": "Fixed",
+      "clip": "coverr-highway-overhead"
+    },
+    {
+      "id": "CAM-J17-SW",
+      "junctionId": "J17",
+      "arm": "SW",
+      "type": "Fixed",
+      "clip": "coverr-highway-bridge"
+    },
+    {
+      "id": "CAM-J17-NW",
+      "junctionId": "J17",
+      "arm": "NW",
+      "type": "Fixed",
+      "clip": "hcmc-district-7"
+    },
+    {
+      "id": "CAM-J18-NE",
+      "junctionId": "J18",
+      "arm": "NE",
+      "type": "Fixed",
+      "clip": "liverpool-m62"
+    },
+    {
+      "id": "CAM-J18-SE",
+      "junctionId": "J18",
+      "arm": "SE",
+      "type": "Fixed",
+      "clip": "coverr-vilnius-crossing"
+    },
+    {
+      "id": "CAM-J18-SW",
+      "junctionId": "J18",
+      "arm": "SW",
+      "type": "Fixed",
+      "clip": "dortmund-a40"
+    },
+    {
+      "id": "CAM-J18-NW",
+      "junctionId": "J18",
+      "arm": "NW",
+      "type": "Fixed",
+      "clip": "coverr-nyc-downtown"
+    },
+    {
+      "id": "CAM-J19-NE",
+      "junctionId": "J19",
+      "arm": "NE",
+      "type": "Fixed",
+      "clip": "tbilisi-embankment"
+    },
+    {
+      "id": "CAM-J19-SE",
+      "junctionId": "J19",
+      "arm": "SE",
+      "type": "Fixed",
+      "clip": "bengaluru-banashankari-a"
+    },
+    {
+      "id": "CAM-J19-NW",
+      "junctionId": "J19",
+      "arm": "NW",
+      "type": "Fixed",
+      "clip": "bengaluru-bda-junction"
+    },
+    {
+      "id": "CAM-J20-E",
+      "junctionId": "J20",
+      "arm": "E",
+      "type": "Fixed",
+      "clip": "coverr-road-traffic"
+    },
+    {
+      "id": "CAM-J20-S",
+      "junctionId": "J20",
+      "arm": "S",
+      "type": "Fixed",
+      "clip": "bengaluru-banashankari-ptz"
+    },
+    {
+      "id": "CAM-J20-W",
+      "junctionId": "J20",
+      "arm": "W",
+      "type": "Fixed",
+      "clip": "tokyo-shinanomachi"
+    },
+    {
+      "id": "CAM-J21-E",
+      "junctionId": "J21",
+      "arm": "E",
+      "type": "Fixed",
+      "clip": "cuttack-link-road"
+    },
+    {
+      "id": "CAM-J21-S",
+      "junctionId": "J21",
+      "arm": "S",
+      "type": "Fixed",
+      "clip": "hcmc-district-7"
+    },
+    {
+      "id": "CAM-J21-W",
+      "junctionId": "J21",
+      "arm": "W",
+      "type": "Fixed",
+      "clip": "coverr-vilnius-crossing"
+    },
+    {
+      "id": "CAM-J22-NE",
+      "junctionId": "J22",
+      "arm": "NE",
+      "type": "Fixed",
+      "clip": "bethesda-i495"
+    },
+    {
+      "id": "CAM-J22-SW",
+      "junctionId": "J22",
+      "arm": "SW",
+      "type": "Fixed",
+      "clip": "chicago-jane-byrne"
+    },
+    {
+      "id": "CAM-J22-NW",
+      "junctionId": "J22",
+      "arm": "NW",
+      "type": "Fixed",
+      "clip": "coverr-nyc-downtown"
+    }
+  ]
+}

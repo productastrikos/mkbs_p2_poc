@@ -64,6 +64,8 @@ const ICONS = {
   hospital:    <><rect x="3" y="3" width="18" height="18" rx="3" /><path d="M12 8v8M8 12h8" /></>,
   arrowRight:  <><path d="M5 12h14" /><polyline points="12 5 19 12 12 19" /></>,
   eye:         <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" /><circle cx="12" cy="12" r="3" /></>,
+  video:       <><polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" /></>,
+  expand:      <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />,
 };
 
 export const ICON_NAMES = Object.keys(ICONS);

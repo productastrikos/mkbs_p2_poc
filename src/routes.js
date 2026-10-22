@@ -13,6 +13,7 @@ import CommandMap from './pages/CommandMap';
 import Tablet from './pages/Tablet';
 import Junctions from './pages/Junctions';
 import JunctionDetail from './pages/JunctionDetail';
+import Cctv from './pages/Cctv';
 import Analytics from './pages/Analytics';
 import Security from './pages/Security';
 import Assistant from './pages/Assistant';
@@ -24,6 +25,7 @@ export const NAV_SECTIONS = [
       { path: '/', label: 'Live Command Map', icon: 'map', element: <CommandMap />, keywords: 'map live ambulances route corridor signals eta scenarios demo' },
       { path: '/tablet', label: 'Ambulance Tablet', icon: 'tablet', element: <Tablet />, keywords: 'obu on-board unit crew login start evp trip' },
       { path: '/junctions', label: 'Junctions', icon: 'traffic', element: <Junctions />, keywords: 'scats phase signal junction detail timeline recovery' },
+      { path: '/cctv', label: 'CCTV', icon: 'video', element: <Cctv />, keywords: 'cctv camera video feed footage wall snapshot' },
     ],
   },
   {

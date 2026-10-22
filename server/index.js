@@ -16,7 +16,7 @@ const PORT = Number(process.env.PORT) || 3000;
 const TYPES = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json',
   '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.map': 'application/json', '.txt': 'text/plain',
-  '.woff2': 'font/woff2',
+  '.woff2': 'font/woff2', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.mp4': 'video/mp4', '.webm': 'video/webm',
 };
 const api = llmHandler();
 
@@ -26,9 +26,23 @@ function serveStatic(req, res) {
   if (!file.startsWith(BUILD)) { res.statusCode = 403; return res.end('Forbidden'); }
   if (!fs.existsSync(file) || fs.statSync(file).isDirectory()) file = path.join(BUILD, 'index.html'); // SPA routes
   const ext = path.extname(file);
+  const { size } = fs.statSync(file);
   res.setHeader('Content-Type', TYPES[ext] || 'application/octet-stream');
+  res.setHeader('Accept-Ranges', 'bytes');
   if (urlPath.startsWith('/static/')) res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-  fs.createReadStream(file).on('error', () => { res.statusCode = 500; res.end(); }).pipe(res);
+  // Byte ranges: browsers seek in the CCTV clips with them (Safari will not play video without).
+  const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
+  let start = 0;
+  let end = size - 1;
+  if (range && (range[1] || range[2])) {
+    start = range[1] ? Number(range[1]) : Math.max(0, size - Number(range[2]));
+    end = range[1] && range[2] ? Math.min(Number(range[2]), size - 1) : size - 1;
+    if (start > end) { res.statusCode = 416; res.setHeader('Content-Range', `bytes */${size}`); return res.end(); }
+    res.statusCode = 206;
+    res.setHeader('Content-Range', `bytes ${start}-${end}/${size}`);
+  }
+  res.setHeader('Content-Length', end - start + 1);
+  fs.createReadStream(file, { start, end }).on('error', () => { res.statusCode = 500; res.end(); }).pipe(res);
   return undefined;
 }
 

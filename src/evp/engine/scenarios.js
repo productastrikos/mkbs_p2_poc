@@ -4,8 +4,9 @@ import { phaseCovering, MOVE_LABEL } from '../junctions.js';
 
 const POC = (engine) => engine.data.junctions.find((j) => j.poc)?.id;
 
+/** Units free for a demo job (preferred ones first); a unit driving back to base counts as free. */
 function idleVehicles(engine, prefer = []) {
-  const idle = [...engine.vehicles.values()].filter((v) => !v.trip && !engine.guard.quarantined.has(v.id)).map((v) => v.id);
+  const idle = engine.availableVehicles().map((v) => v.id);
   return [...prefer.filter((id) => idle.includes(id)), ...idle.filter((id) => !prefer.includes(id))];
 }
 
@@ -32,7 +33,7 @@ export function sghRun(engine, { vehicleId, priority = 'Critical', originId } = 
   const origins = rankOrigins(engine, 'SGH');
   const origin = (originId && origins.find((o) => o.place.id === originId)) || origins[0];
   engine.placeVehicle(vid, origin.place.node, origin.place.name);
-  const trip = engine.startTrip({ vehicleId: vid, status: 'TO_HOSPITAL', priority, destination: { type: 'hospital', id: 'SGH' }, originName: origin.place.name, crew: 'Demo crew' });
+  const trip = engine.startTrip({ vehicleId: vid, status: 'TO_HOSPITAL', priority, destination: { type: 'hospital', id: 'SGH' }, originName: origin.place.name, crew: 'Demo crew', source: 'scenario' });
   return { ok: true, tripIds: [trip.id], message: `${vid} picked up a ${priority.toLowerCase()} patient at ${origin.place.name} and pressed START for SGH (${trip.crossings.length} EVP junctions)` };
 }
 
@@ -64,8 +65,8 @@ export function conflict(engine) {
         engine.placeVehicle(urgentV, a.p.node, a.p.name);
         engine.placeVehicle(criticalV, b.p.node, b.p.name);
         // The urgent ambulance starts nearer, so "nearest ETA" alone would favour it.
-        const t1 = engine.startTrip({ vehicleId: urgentV, status: 'TO_HOSPITAL', priority: 'Urgent', destination: { type: 'hospital', id: a.h.id }, originName: a.p.name, startOffset: a.c.dStop - 560 });
-        const t2 = engine.startTrip({ vehicleId: criticalV, status: 'TO_HOSPITAL', priority: 'Critical', destination: { type: 'hospital', id: b.h.id }, originName: b.p.name, startOffset: b.c.dStop - 640 });
+        const t1 = engine.startTrip({ vehicleId: urgentV, status: 'TO_HOSPITAL', priority: 'Urgent', destination: { type: 'hospital', id: a.h.id }, originName: a.p.name, startOffset: a.c.dStop - 560, source: 'scenario' });
+        const t2 = engine.startTrip({ vehicleId: criticalV, status: 'TO_HOSPITAL', priority: 'Critical', destination: { type: 'hospital', id: b.h.id }, originName: b.p.name, startOffset: b.c.dStop - 640, source: 'scenario' });
         return {
           ok: true, tripIds: [t1.id, t2.id], junctionId: jid,
           message: `${urgentV} (Urgent, ${MOVE_LABEL[a.c.move]} from ${a.c.fromArm}) and ${criticalV} (Critical, ${MOVE_LABEL[b.c.move]} from ${b.c.fromArm}) converge on ${jid} ${j.name}: phases ${pa.id} and ${pb.id} conflict`,
@@ -78,7 +79,7 @@ export function conflict(engine) {
 
 /** Spoofed GPS jump on an active trip (starts one if needed). */
 export function spoof(engine) {
-  let trip = engine.activeTrips().find((t) => !t.evpSuspended);
+  let trip = engine.evpTrips().find((t) => !t.evpSuspended && !engine.guard.quarantined.has(t.vehicleId));
   let started = '';
   if (!trip) {
     const res = sghRun(engine, { priority: 'Urgent' });
@@ -96,10 +97,10 @@ export function unregistered(engine) {
 }
 
 export function misuse(engine) {
-  const vid = idleVehicles(engine, ['AMB-16'])[0];
+  const vid = idleVehicles(engine, ['AMB-16']).find((id) => !engine.vehicles.get(id).trip);
   if (!vid) return { ok: false, message: 'No idle ambulance' };
-  engine.injectRequestWithoutTrip(vid, 3);
-  return { ok: true, message: `${vid} sent 3 pre-emption requests without an active trip` };
+  const res = engine.injectRequestWithoutTrip(vid, 3);
+  return { ok: true, message: `${vid} (no trip started) is sending 3 green requests to ${res.junctionId} over the next ${res.overS} s: the first two are blocked, the third quarantines the unit` };
 }
 
 export function noPatientStatus(engine) {
@@ -107,8 +108,8 @@ export function noPatientStatus(engine) {
   if (!vid) return { ok: false, message: 'No idle ambulance' };
   const origins = rankOrigins(engine, 'SGH');
   engine.placeVehicle(vid, origins[1].place.node, origins[1].place.name);
-  const trip = engine.startTrip({ vehicleId: vid, status: 'RETURNING', priority: 'Non-urgent', destination: { type: 'hospital', id: 'SGH' }, originName: origins[1].place.name });
-  return { ok: true, tripIds: [trip.id], message: `${vid} started a trip with status "Returning to base": its EVP requests will be blocked` };
+  const trip = engine.startTrip({ vehicleId: vid, status: 'RETURNING', priority: 'Non-urgent', destination: { type: 'hospital', id: 'SGH' }, originName: origins[1].place.name, source: 'scenario' });
+  return { ok: true, tripIds: [trip.id], message: `${vid} pressed START with status "Returning to base" (${trip.crossings.length} EVP junctions on its route): each green request will be blocked` };
 }
 
 export const SCENARIOS = [

@@ -10,14 +10,15 @@ export function fmtLocal(ms, withTime = true) {
   return withTime ? `${date}, ${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}` : date;
 }
 export const monthLabel = (key) => { const [y, m] = key.split('-'); return `${['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][+m - 1]} ${y}`; };
-const OVERRIDE_TEXT = {
+export const OVERRIDE_TEXT = {
   MAX_HOLD: '45 s maximum hold reached; released to SCATS',
   CANCEL_STOP: 'request cancelled: ambulance stopped > 20 s',
   CANCEL_DIVERT: 'request cancelled: ambulance left the route > 20 s',
   BLOCKED: 'request blocked by the authorisation guard',
-  PHASE_CORRECTION: 'phase corrected after green',
+  PHASE_CORRECTION: 'phase corrected: the ambulance took a different movement than predicted',
   QUARANTINE: 'request cancelled: vehicle quarantined by anomaly guard',
 };
+const fmtDur = (s) => `${Math.floor(s / 60)} min ${Math.round(s % 60)} s`;
 
 export function tripReportPayload(trip, { junctions, hospitals, ambulances = [] }) {
   const jById = new Map(junctions.map((j) => [j.id, j]));
@@ -31,11 +32,13 @@ export function tripReportPayload(trip, { junctions, hospitals, ambulances = [] 
     to: trip.destinationName || hospitals.find((h) => h.id === trip.destination)?.name || trip.destination,
     started: fmtLocal(trip.start),
     weather: trip.rain ? 'Rain' : 'Dry',
+    outcome: trip.arrived === false ? `Ended before arrival (${trip.endReason})` : 'Arrived at destination',
     distanceKm: Math.round(trip.length / 100) / 10,
     durationS: Math.round(trip.duration),
     noEvpBaselineS: Math.round(trip.baseline),
     secondsSaved: Math.round(trip.saved),
     conflictingMovementsAvoided: trip.conflictsAvoided,
+    conflictingMovementsDefinition: 'junctions where the ambulance would have met a red without EVP but passed without stopping',
     fuelSavedL: trip.fuelSavedL,
     junctions: trip.junctions.map((c) => {
       const j = jById.get(c.j);
@@ -43,7 +46,8 @@ export function tripReportPayload(trip, { junctions, hospitals, ambulances = [] 
         id: c.j, name: j?.name, scatsSite: j?.scatsSite, approach: `${c.arm} (${j?.arms.find((a) => a.id === c.arm)?.road || 'unnamed road'})`,
         movement: MOVE_LABEL[c.move], preempted: c.preempted, phase: c.phase, phaseRule: c.phaseRule,
         greenBeforeArrivalS: c.greenLead, waitS: c.wait, noEvpWaitS: c.baseWait, savedS: Math.round((c.baseWait - c.wait) * 10) / 10,
-        pedestrianProtectionS: c.pedProtect || 0, conflict: c.conflict ? `yes${c.yieldTo ? ` (yielded to ${c.yieldTo})` : ''}` : 'no',
+        pedestrianProtectionS: c.pedProtect || 0,
+        conflict: c.yieldTo ? `yes: yielded to ${c.yieldTo}` : c.priorityOver ? `yes: had priority over ${c.priorityOver}` : 'no',
         safetyOverride: c.override ? OVERRIDE_TEXT[c.override] || c.override : null, etaErrorS: c.etaMae,
       };
     }),
@@ -59,27 +63,34 @@ export function offlineTripReport(trip, ctx) {
   const pre = p.junctions.filter((c) => c.preempted).length;
   const overrides = p.junctions.filter((c) => c.safetyOverride);
   const ped = p.junctions.filter((c) => c.pedestrianProtectionS > 0);
-  const leads = p.junctions.map((c) => c.greenBeforeArrivalS).filter((x) => x != null);
+  const leads = p.junctions.filter((c) => c.preempted).map((c) => c.greenBeforeArrivalS).filter((x) => x != null);
+  const conflicts = p.junctions.filter((c) => c.conflict !== 'no');
+  const lead = (x) => (x == null ? 'n/a' : x >= 0 ? `${x} s before` : `${Math.abs(x)} s after`);
   const lines = [
     `# Post-trip report: ${p.tripId}`,
     '',
     `**${p.ambulance.id}** (${p.ambulance.operator || 'operator n/a'}) · ${p.priority} · ${p.status} · ${p.started} · ${p.weather}`,
     '',
     '## Summary',
-    `- Route: ${p.from} → ${p.to}, ${p.distanceKm} km in ${Math.floor(p.durationS / 60)} min ${p.durationS % 60} s.`,
-    `- ${pre} of ${p.junctions.length} EVP junctions pre-empted${leads.length ? `; green came on an average of ${(leads.reduce((s, x) => s + x, 0) / leads.length).toFixed(1)} s before arrival (target 15 s)` : ''}.`,
-    `- Estimated time saved against the no-EVP baseline: **${p.secondsSaved} s** (baseline ${p.noEvpBaselineS} s).`,
-    `- Conflicting movements avoided: ${p.conflictingMovementsAvoided}. Fuel saved: ${p.fuelSavedL} L.`,
+    `- Route: ${p.from} → ${p.to}, ${p.distanceKm} km in ${fmtDur(p.durationS)}${trip.arrived === false ? ` (${p.outcome.toLowerCase()})` : ''}.`,
+    p.junctions.length
+      ? `- ${pre} of ${p.junctions.length} EVP junctions pre-empted${leads.length ? `; at pre-empted junctions the green came on an average of ${(leads.reduce((s, x) => s + x, 0) / leads.length).toFixed(1)} s before arrival (target 15 s)` : ''}.`
+      : '- The route crossed none of the 22 EVP junctions, so no greens were requested.',
+    `- Time saved against the no-EVP baseline: **${p.secondsSaved} s** (${fmtDur(p.durationS)} with EVP vs ${fmtDur(p.noEvpBaselineS)} without).`,
+    `- Red-light stops avoided (conflicting movements): ${p.conflictingMovementsAvoided}. Fuel saved: ${p.fuelSavedL} L.`,
     '',
-    '## Junctions',
-    '| Junction | Movement | Phase | Green lead | Wait (EVP / baseline) |',
-    '|---|---|---|---|---|',
-    ...p.junctions.map((c) => `| ${c.id} ${c.name} | ${c.movement} from ${c.approach} | ${c.phase || 'n/a'} | ${c.greenBeforeArrivalS ?? 'n/a'} s | ${c.waitS} s / ${c.noEvpWaitS} s |`),
-    '',
+    ...(p.junctions.length ? [
+      '## Junctions',
+      '| Junction | Movement | Phase | Green vs arrival | Wait (EVP / no EVP) |',
+      '|---|---|---|---|---|',
+      ...p.junctions.map((c) => `| ${c.id} ${c.name} | ${c.movement} from ${c.approach} | ${c.phase || 'none'}${c.preempted ? '' : ' (not pre-empted)'} | ${lead(c.greenBeforeArrivalS)} | ${c.waitS} s / ${c.noEvpWaitS} s |`),
+      '',
+    ] : []),
     '## Safety',
-    overrides.length ? overrides.map((c) => `- ${c.id}: ${c.safetyOverride}.`).join('\n') : '- No safety overrides. All transitions used 3 s amber and 2 s all-red, holds stayed under 45 s.',
-    ped.length ? ped.map((c) => `- ${c.id}: transition waited ${c.pedestrianProtectionS} s for a pedestrian crossing to finish.`).join('\n') : '- No pedestrian crossings had to be protected.',
-    p.anomalies.length ? `- Anomaly guard: ${p.anomalies.map((a) => a.type).join(', ')}.` : '- No GPS or authorisation anomalies.',
+    overrides.length ? overrides.map((c) => `- ${c.id}: ${c.safetyOverride}.`).join('\n') : '- No safety overrides. Every transition used 3 s amber and 2 s all-red, and no hold reached 45 s.',
+    ped.length ? ped.map((c) => `- ${c.id}: transition waited ${c.pedestrianProtectionS} s for a pedestrian crossing to finish.`).join('\n') : '- No pedestrian crossing had to be protected.',
+    conflicts.length ? conflicts.map((c) => `- ${c.id}: priority conflict, ${c.conflict.replace(/^yes: /, '')}.`).join('\n') : '- No priority conflicts with other ambulances.',
+    p.anomalies.length ? `- Anomaly guard: ${[...new Set(p.anomalies.map((a) => a.type))].join(', ')}.` : '- No GPS or authorisation anomalies.',
     p.routeDeviation ? `- Route deviation: ${p.routeDeviation}.` : '',
     '',
     '_Generated from the offline template (no LLM configured)._',
@@ -96,23 +107,30 @@ export function offlineMonthlySummary(digest, audience) {
     PDRM: 'Road safety: conflicting movements avoided, priority conflicts and security alerts.',
   }[audience] || '';
   const topJ = (m?.junctions || []).slice(0, 3);
+  const partial = digest.period && m && (digest.period.to.slice(0, 7) === m.month || digest.period.from.slice(0, 7) === m.month);
+  const cb = digest.costBenefit;
   return [
     `# GreenLight EVP monthly summary: ${monthLabel(m.month)}`,
     `**For:** ${audience} · ${focus}`,
     '',
     '## Key figures',
-    `- Trips: ${mt?.trips ?? 0}; average trip ${mt?.avgDuration ?? 'n/a'} s against a no-EVP baseline of ${mt?.avgBaseline ?? 'n/a'} s.`,
-    `- Average time saved per trip: **${mt?.avgSaved ?? 'n/a'} s**.`,
-    `- All-time: ${digest.kpis.trips} trips, ${digest.kpis.preemptedPct}% of junction crossings pre-empted, ${digest.kpis.conflictingMovementsAvoided} conflicting movements avoided.`,
+    `- Trips: ${mt?.trips ?? 0}${partial ? ' (part month: pilot data ends or starts within it)' : ''}; average trip ${fmtDur(mt?.avgDuration ?? 0)} with EVP against a no-EVP baseline of ${fmtDur(mt?.avgBaseline ?? 0)}.`,
+    `- Average time saved per trip: **${mt?.avgSaved ?? 'n/a'} s**; ${mt?.preempted ?? 0} junction crossings pre-empted.`,
+    `- Pilot to date: ${digest.kpis.trips} trips, ${digest.kpis.preemptedPct}% of junction crossings pre-empted, ${digest.kpis.conflictingMovementsAvoided} red-light stops avoided, ${digest.kpis.priorityConflictsResolved} priority conflicts resolved.`,
     '',
-    '## Junctions with most baseline delay this month',
-    ...topJ.map((j) => `- ${j.id} ${j.name}: ${j.baselineWaitS} s of red-light waiting avoided over ${j.crossings} crossings (residual ${j.residualWaitS} s).`),
+    '## Junctions with most no-EVP delay this month',
+    ...(topJ.length
+      ? topJ.map((j) => `- ${j.id} ${j.name}: ${j.crossings} crossings, ${j.baselineWaitS} s of red-light waiting without EVP cut to ${j.residualWaitS} s with EVP.`)
+      : ['- No junction crossings recorded this month.']),
     '',
     '## Rollout priority (top 5)',
     ...digest.rolloutTop10.slice(0, 5).map((r) => `${r.rank}. ${r.id} ${r.name} (${r.phase})`),
     '',
-    '## Security',
-    `- ${digest.security.alerts} alerts this session${Object.keys(digest.security.byType).length ? `: ${Object.entries(digest.security.byType).map(([k, v]) => `${k} ×${v}`).join(', ')}` : ''}.`,
+    '## Cost and benefit',
+    `- Budget RM${(cb.budgetRM / 1e6).toFixed(1)}M (2027–2030); estimated benefit RM${(cb.benefitPerYearRM / 1e6).toFixed(2)}M a year at full rollout, RM${(cb.cumulativeBenefitBy2030RM / 1e6).toFixed(2)}M cumulative by 2030 (${cb.benefitToBudgetRatio}× the budget). ${cb.paybackYear ? `Pays back in ${cb.paybackYear}.` : 'Does not pay back by 2030 under the current assumptions.'}`,
+    '',
+    '## Security (live session)',
+    `- ${digest.security.alerts} alert(s) in this session${Object.keys(digest.security.byType).length ? `: ${Object.entries(digest.security.byType).map(([k, v]) => `${k} ×${v}`).join(', ')}` : ''}; ${digest.security.open} still open${digest.security.quarantinedUnits.length ? `; quarantined: ${digest.security.quarantinedUnits.join(', ')}` : ''}.`,
     '',
     '_Generated from the offline template (no LLM configured)._',
   ].join('\n');
@@ -132,9 +150,25 @@ export function offlineAnswer(question, d) {
       ? `${top.id} ${top.name} caused the most red-light delay${/month/.test(q) && d.month ? ` in ${monthLabel(d.month.month)}` : ''}: ${top.baselineWaitS} s of waiting over ${top.crossings} ambulance crossings without EVP${top.residualWaitS != null ? `, cut to ${top.residualWaitS} s with EVP` : ''}.`
       : 'No junction crossings recorded for that period.';
   }
-  if (/rollout|priorit|first/.test(q)) return `Rollout order (top 5): ${d.rolloutTop10.slice(0, 5).map((r) => `${r.rank}. ${r.id} ${r.name}`).join('; ')}.`;
-  if (/conflict/.test(q)) return `${d.kpis.priorityConflictsResolved} priority conflicts were resolved and ${d.kpis.conflictingMovementsAvoided} conflicting movements avoided.`;
-  if (/alert|spoof|security|block/.test(q)) return `${d.security.alerts} security alerts this session${Object.keys(d.security.byType).length ? `: ${Object.entries(d.security.byType).map(([k, v]) => `${k} ×${v}`).join(', ')}` : ''}.`;
-  if (/cost|budget|benefit|payback/.test(q)) return `Against the RM2.0M budget, estimated benefits are RM${(d.costBenefit.benefitPerYearRM / 1e6).toFixed(2)}M per year at full rollout; payback in ${d.costBenefit.paybackYear || 'after 2030'} under the current assumptions.`;
-  return `Across ${d.kpis.trips} trips EVP saved ${d.kpis.avgSecondsSavedPerTrip} s per trip on average (${d.kpis.reductionPct}% of baseline trip time). Ask about a junction, hospital, month, conflicts, security or cost-benefit. (Offline mode: connect an LLM for open questions.)`;
+  if (/rollout|first|phase 1|which \d+ junctions/.test(q)) {
+    const n = Math.min(10, Number((q.match(/\b(\d{1,2})\b/) || [])[1]) || 8);
+    const top = d.rolloutTop10.slice(0, n);
+    return [
+      `Top ${top.length} for the rollout (score = 0.55 × delay exposure + 0.45 × collision risk):`,
+      ...top.map((r) => `${r.rank}. **${r.id} ${r.name}** (${r.phase}): delay score ${r.delayScore}, risk score ${r.riskScore}; ${r.collisions} ambulance collision(s), ${r.nearMisses} near misses on record.`),
+    ].join('\n');
+  }
+  if (/conflict/.test(q)) {
+    return `${d.kpis.priorityConflictsResolved} priority conflict(s) between ambulances were resolved in the pilot data. The rule: the higher patient priority goes first (Critical > Urgent > Non-urgent), then the nearer ETA; an ambulance within 4 s of the stop line is never overtaken. The other ambulance is shown "HOLD: yielding" and gets its green once the junction is released. Separately, ${d.kpis.conflictingMovementsAvoided} red-light stops (conflicting movements) were avoided.`;
+  }
+  if (/alert|spoof|security|block|quarantin/.test(q)) {
+    const s = d.security;
+    if (!s.alerts) return 'No security alerts in this live session. Use Alerts & Security → "Test the guard" to try a GPS spoof, an unregistered vehicle or misuse.';
+    return `${s.alerts} security alert(s) in this live session${Object.keys(s.byType).length ? `: ${Object.entries(s.byType).map(([k, v]) => `${k} ×${v}`).join(', ')}` : ''}. ${s.open} still open.${s.quarantinedUnits.length ? ` Quarantined (EVP suspended until an operator reinstates them): ${s.quarantinedUnits.join(', ')}.` : ' No unit is quarantined.'} Every flagged request was blocked; spoofing and repeated misuse quarantine the unit and release any green it held.`;
+  }
+  if (/cost|budget|benefit|payback|pay back/.test(q)) {
+    const cb = d.costBenefit;
+    return `Against the RM2.0M budget (2027–2030), estimated benefits are RM${(cb.benefitPerYearRM / 1e6).toFixed(2)}M a year at full rollout and RM${(cb.cumulativeBenefitBy2030RM / 1e6).toFixed(2)}M cumulative by 2030 (${cb.benefitToBudgetRatio}× the budget). ${cb.paybackYear ? `It pays back in ${cb.paybackYear}` : 'It does not pay back by 2030'} under the current assumptions; these leave out the clinical value of faster arrival. Edit them on Analytics → Cost / benefit.`;
+  }
+  return `Across ${d.kpis.trips} pilot trips EVP saved ${d.kpis.avgSecondsSavedPerTrip} s per trip on average (${d.kpis.reductionPct}% of the no-EVP trip time). Ask about a junction, hospital, month, conflicts, security or cost-benefit. (Offline mode: connect an LLM for open questions.)`;
 }

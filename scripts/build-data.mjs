@@ -372,7 +372,8 @@ FLEET.forEach(([base, count, operator, type]) => {
       operator,
       type,
       base,
-      registered: '2026-06-02',
+      // OBUs were fitted and registered in the week before the pilot started on 15 Apr 2026.
+      registered: { 'JKNS / KKM': '2026-04-06', 'BOMBA EMRS': '2026-04-08' }[operator] || '2026-04-10',
     });
   }
 });

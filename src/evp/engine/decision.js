@@ -10,7 +10,11 @@
      • WHO goes first when requests conflict: higher patient priority, then
        nearest ETA. A vehicle within 4 s of the stop line is never overtaken;
      • WHEN to let go: release once the ambulance clears the junction, or
-       cancel if it stops or leaves the route for more than 20 s.
+       cancel if it stops or leaves the route for more than 20 s;
+     • WHAT to do if the held green does not move it: an ambulance standing
+       at the stop line under its green is waiting for a movement that green
+       does not serve, so the request moves to the exclusive approach phase
+       (every movement from that arm) through the normal amber + all-red.
    All signal changes go through the SCATS adapter. */
 import { phaseCovering, phaseServes, MOVE_LABEL } from '../junctions.js';
 import { PRIORITY_RANK } from '../traffic.js';
@@ -19,7 +23,9 @@ export const LEAD_S = 15;
 export const PROB_THRESHOLD = 0.8;
 export const CANCEL_AFTER_S = 20;
 export const NOTICE_S = 60;
+export const LINE_WAIT_S = 4;   // standing at the stop line under the held green this long → phase correction
 const COMMITTED_S = 4;
+const AT_LINE_M = 30;
 
 /** Phase to request for a prediction: { phase, moves, rule }. */
 export function choosePhase(junction, arm, probs) {
@@ -45,6 +51,7 @@ export class DecisionEngine {
     const t = this.e.t;
     const byJ = new Map();
     this.e.activeTrips().forEach((trip) => {
+      if (trip.evp === false) return; // repositioning drive: no pre-emption
       trip.crossings.forEach((c) => {
         if (c.cancelledAt != null) {
           // A vehicle that stopped and moved off again may request afresh.
@@ -76,8 +83,15 @@ export class DecisionEngine {
       if (!trip || !trip.active || !c) { this._release(jid, g, 'Trip ended'); continue; }
       if (c.passed) { this._release(jid, g, 'Ambulance cleared junction'); c.request = 'RELEASED'; continue; }
       if (e.guard.quarantined.has(trip.vehicleId)) { this._cancel(jid, g, c, 'Vehicle quarantined by anomaly guard', 'QUARANTINE'); continue; }
-      const distToStop = c.dStop - trip.dEst;
-      if (trip.stoppedSince != null && t - trip.stoppedSince > CANCEL_AFTER_S && (distToStop > 30 || c.request === 'GREEN')) {
+      const stoppedFor = trip.stoppedSince != null ? t - trip.stoppedSince : 0;
+      const atLine = c.dStop - trip.dEst <= AT_LINE_M;
+      const greenFor = c.request === 'GREEN' && c.greenAt != null ? t - c.greenAt : 0;
+      if (atLine && !c.lineCorrected && greenFor >= LINE_WAIT_S && stoppedFor >= LINE_WAIT_S) {
+        this._correctAtLine(jid, g, c, trip); continue;
+      }
+      // Waiting at the stop line for a green that is on its way is not a
+      // roadside stop; standing still under a held green for 20 s is.
+      if (stoppedFor > CANCEL_AFTER_S && (!atLine || greenFor > CANCEL_AFTER_S)) {
         this._cancel(jid, g, c, `Ambulance stopped > ${CANCEL_AFTER_S} s`, 'CANCEL_STOP'); continue;
       }
       if (trip.offRouteSince != null && t - trip.offRouteSince > CANCEL_AFTER_S) {
@@ -101,7 +115,7 @@ export class DecisionEngine {
         if (last?.requestId === g.requestId && last.maxHoldHit) {
           c.override = 'MAX_HOLD';
           this.stats.maxHolds++;
-          e.log('warning', `${jid}: 45 s maximum hold reached for ${trip.vehicleId}; released to SCATS`, { junctionId: jid, vehicleId: trip.vehicleId, tripId: trip.id });
+          e.log('warning', `${jid}: 45 s maximum hold reached for ${trip.vehicleId}; released to SCATS`, { junctionId: jid, vehicleId: trip.vehicleId, tripId: trip.id, kind: 'maxhold' });
         }
         this.grants.delete(jid);
         c.request = 'RELEASED';
@@ -147,9 +161,11 @@ export class DecisionEngine {
         if (!compatible) {
           holder.c.request = 'YIELDING';
           holder.c.conflict = true;
+          holder.c.yieldTo = winner.trip.vehicleId;
           winner.c.conflict = true;
+          winner.c.priorityOver = holder.trip.vehicleId;
           this.stats.conflicts++;
-          e.log('warning', `Conflict at ${jid}: ${winner.trip.vehicleId} (${winner.trip.priority}, ETA ${Math.round(winner.etaNow)} s) granted before ${holder.trip.vehicleId} (${holder.trip.priority}, ETA ${Math.round(holder.etaNow)} s)`, { junctionId: jid, vehicleId: winner.trip.vehicleId });
+          e.log('warning', `Conflict at ${jid}: ${winner.trip.vehicleId} (${winner.trip.priority}, ETA ${Math.round(winner.etaNow)} s) granted before ${holder.trip.vehicleId} (${holder.trip.priority}, ETA ${Math.round(holder.etaNow)} s)`, { junctionId: jid, vehicleId: winner.trip.vehicleId, kind: 'conflict' });
           this.grants.delete(jid);
           this._send(jid, winner, `priority over ${holder.trip.vehicleId}`);
         }
@@ -165,8 +181,11 @@ export class DecisionEngine {
           d.c.request = 'YIELDING';
           d.c.conflict = true;
           d.c.yieldTo = grant.vehicleId;
+          const holderTrip = e.trips.get(grant.tripId);
+          const hc = holderTrip?.crossings.find((x) => x.requestId === grant.requestId);
+          if (hc) { hc.conflict = true; hc.priorityOver = d.trip.vehicleId; }
           this.stats.conflicts++;
-          e.log('warning', `Conflict at ${jid}: ${d.trip.vehicleId} (${d.trip.priority}) holds for ${grant.vehicleId} (${grant.priority})`, { junctionId: jid, vehicleId: d.trip.vehicleId });
+          e.log('warning', `Conflict at ${jid}: ${d.trip.vehicleId} (${d.trip.priority}) holds for ${grant.vehicleId} (${grant.priority})`, { junctionId: jid, vehicleId: d.trip.vehicleId, kind: 'conflict' });
         }
       });
     }
@@ -180,7 +199,8 @@ export class DecisionEngine {
       c.request = 'BLOCKED';
       c.override = 'BLOCKED';
       this.stats.blocked++;
-      if (!auth.silent) e.log('danger', `${jid}: request from ${trip.vehicleId} blocked (${auth.reason})`, { junctionId: jid, vehicleId: trip.vehicleId, tripId: trip.id });
+      // The guard's alert carries the notification; this is the signal-side record.
+      if (!auth.silent) e.log('danger', `${jid}: request from ${trip.vehicleId} blocked (${auth.reason})`, { junctionId: jid, vehicleId: trip.vehicleId, tripId: trip.id, kind: 'blocked' });
       return;
     }
     const requestId = `R${++this.seq}`;
@@ -216,6 +236,25 @@ export class DecisionEngine {
     this.e.log('info', `${jid}: request for ${trip.vehicleId} updated to phase ${choice.phase.id} (${choice.rule})`, { junctionId: jid, vehicleId: trip.vehicleId });
   }
 
+  /** The ambulance stands at the stop line under its held green: serve every movement from its arm. */
+  _correctAtLine(jid, g, c, trip) {
+    const junction = this.e.junctionsById.get(jid);
+    const phase = junction.phases.find((p) => p.id === `X${c.arm}`)
+      || phaseCovering(junction, c.arm, Object.keys(junction.movements[c.arm] || {}));
+    c.lineCorrected = true;
+    if (!phase || phase.id === g.phaseId) return;
+    const from = g.phaseId;
+    g.phaseId = phase.id;
+    g.sentAt = this.e.t;
+    c.phase = phase.id;
+    c.phaseRule = `Ambulance waiting at the stop line under phase ${from}: switched to ${phase.id} (all movements from ${c.arm})`;
+    c.request = 'SENT';
+    c.override = 'PHASE_CORRECTION';
+    this.stats.corrections++;
+    this.e.adapter.requestPhase(jid, phase.id, { requestId: g.requestId, vehicleId: trip.vehicleId, priority: trip.priority, arm: c.arm, moves: Object.keys(junction.movements[c.arm] || {}), etaS: 0 });
+    this.e.log('warning', `${jid}: ${trip.vehicleId} is waiting at the stop line under phase ${from}; phase corrected to ${phase.id} via amber + all-red`, { junctionId: jid, vehicleId: trip.vehicleId, tripId: trip.id, kind: 'correction' });
+  }
+
   _release(jid, g, reason) {
     this.e.adapter.release(jid, g.requestId, reason);
     this.grants.delete(jid);
@@ -229,7 +268,7 @@ export class DecisionEngine {
     c.cancelledAt = this.e.t;
     c.override = code;
     this.stats.cancels++;
-    this.e.log('warning', `${jid}: request from ${g.vehicleId} cancelled: ${reason}`, { junctionId: jid, vehicleId: g.vehicleId });
+    this.e.log('warning', `${jid}: request from ${g.vehicleId} cancelled: ${reason}`, { junctionId: jid, vehicleId: g.vehicleId, kind: 'cancel' });
   }
 
   /** Drop every grant held by a vehicle (quarantine). */

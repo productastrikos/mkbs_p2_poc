@@ -5,6 +5,7 @@ import ChartCard from '../components/charts/ChartCard';
 import { useData } from '../data/DataProvider';
 import { DEFAULT_ASSUMPTIONS } from '../evp/analytics';
 import { PriorityBadge, fmtS, fmtNum, fmtRM, fmtPct, fmtDate } from '../components/evp/format';
+import { fmtLocal } from '../evp/reports';
 
 const TABS = [
   { value: 'overview', label: 'Overview' },
@@ -23,7 +24,7 @@ function Overview({ an, allTrips }) {
   const [showAll, setShowAll] = useState(false);
   const trips = showAll ? allTrips.slice(0, 200) : allTrips.slice(0, 12);
   const columns = [
-    { key: 'id', header: 'Trip', strong: true, render: (t) => <span className="whitespace-nowrap">{t.id}{t.source === 'live' ? <Badge tone="primary" className="ml-1.5">Live</Badge> : null}</span> },
+    { key: 'id', header: 'Trip', strong: true, render: (t) => <span className="whitespace-nowrap">{t.id}{t.source === 'live' ? <Badge tone="primary" className="ml-1.5">Live</Badge> : null}{t.arrived === false ? <Badge tone="warning" className="ml-1.5" title={`${t.endReason}: excluded from the KPIs`}>Ended early</Badge> : null}</span> },
     { key: 'start', header: 'Start', render: (t) => <span className="whitespace-nowrap">{fmtDate(t.start)}</span> },
     { key: 'amb', header: 'Ambulance', render: (t) => t.ambulanceId },
     { key: 'dest', header: 'Destination', render: (t) => <span className="whitespace-nowrap">{t.destinationName}</span> },
@@ -32,17 +33,22 @@ function Overview({ an, allTrips }) {
     { key: 'dur', header: 'With EVP', className: 'tabular-nums whitespace-nowrap', render: (t) => fmtS(t.duration) },
     { key: 'base', header: 'No-EVP baseline', className: 'tabular-nums whitespace-nowrap', render: (t) => fmtS(t.baseline) },
     { key: 'saved', header: 'Saved', className: 'tabular-nums', render: (t) => <b className="text-fg">{Math.round(t.saved)} s</b> },
+    { key: 'status', header: 'Status', render: (t) => <span className="text-fg-muted whitespace-nowrap">{t.status === 'TO_HOSPITAL' ? 'To hospital' : 'To patient'}</span> },
     { key: 'r', header: '', render: (t) => <Link className="link-btn" to={`/assistant?trip=${t.id}`}>REPORT</Link> },
   ];
   return (
     <div className="space-y-4">
+      <p className="text-[11px] text-fg-faint">
+        Pilot history {an.historyPeriod ? `${fmtLocal(an.historyPeriod.from, false)} – ${fmtLocal(an.historyPeriod.to, false)}` : ''}{k.liveTrips ? ` plus ${k.liveTrips} live trip${k.liveTrips === 1 ? '' : 's'} completed this session` : ''} ({k.tripsWithJunctions} of {k.trips} crossed at least one EVP junction).
+        "Red-light stops avoided" counts crossings where the ambulance would have met a red without EVP (&gt; 2 s wait) but passed without stopping (the conflicting movements EVP removes).
+      </p>
       <StatGrid>
         <StatCard label="Avg time saved per trip" value={fmtNum(k.avgSavedS, 0)} unit="s" icon="clock"
-          subValues={[{ label: 'Trip with EVP', value: fmtS(k.avgDurationS) }, { label: 'Without', value: fmtS(k.avgBaselineS) }]} />
+          subValues={[{ label: 'Trip with EVP', value: fmtS(k.avgDurationS) }, { label: 'Without', value: fmtS(k.avgBaselineS) }, { label: 'Reduction', value: `${fmtNum(k.reductionPct, 1)}%` }]} />
         <StatCard label="Trips analysed" value={fmtNum(k.trips)} icon="ambulance"
-          subValues={[{ label: 'Live this session', value: k.liveTrips }, { label: 'Hours saved', value: fmtNum(k.totalSavedS / 3600, 1) }]} />
-        <StatCard label="Conflicting movements avoided" value={fmtNum(k.conflictsAvoided)} icon="shield"
-          subValues={[{ label: 'Priority conflicts', value: k.priorityConflicts }, { label: 'Ped. protected', value: k.pedProtect }]} />
+          subValues={[{ label: 'Live this session', value: k.liveTrips }, { label: 'Hours saved', value: fmtNum(k.totalSavedS / 3600, 1) }, ...(k.endedEarly ? [{ label: 'Ended early (excl.)', value: k.endedEarly }] : [])]} />
+        <StatCard label="Red-light stops avoided" value={fmtNum(k.conflictsAvoided)} icon="shield"
+          subValues={[{ label: 'Priority conflicts', value: k.priorityConflicts }, { label: 'Phase corrections', value: k.phaseCorrections }, { label: 'Ped. protected', value: k.pedProtect }]} />
         <StatCard label="Fuel & idle saved" value={fmtNum(k.fuelSavedL, 0)} unit="L" icon="leaf"
           subValues={[{ label: 'Idle hours', value: fmtNum(k.idleSavedH, 1) }, { label: 'CO₂', value: `${fmtNum(k.co2Kg, 0)} kg` }]} />
       </StatGrid>
@@ -56,7 +62,7 @@ function Overview({ an, allTrips }) {
               { label: 'With EVP', data: an.monthly.map((m) => Math.round((m.avgDuration / 60) * 10) / 10), color: 'chart-1' },
             ],
           }} />
-        <ChartCard title="Seconds saved per trip" subtitle="Distribution of time saved across all trips" type="bar" height={230}
+        <ChartCard title="Seconds saved per trip" subtitle={`Distribution of time saved across all ${k.trips} trips; a trip whose route crosses no EVP junction saves 0 s`} type="bar" height={230}
           data={{ labels: an.savedHistogram.map((b) => `${b.label} s`), datasets: [{ label: 'Trips', data: an.savedHistogram.map((b) => b.count), color: 'chart-1' }] }} />
       </div>
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-4">
@@ -74,7 +80,7 @@ function Overview({ an, allTrips }) {
               <Field label="Junction crossings">{fmtNum(k.crossings)}</Field>
               <Field label="Pre-empted">{fmtPct(k.preemptRate, 1)}</Field>
               <Field label="Mean green lead before arrival">{fmtS(k.avgGreenLead)}</Field>
-              <Field label="Safety overrides (max hold, cancel)">{k.overrides}</Field>
+              <Field label="Safety overrides (max hold, cancel, correction)">{k.overrides}</Field>
             </div>
           </div>
         </Card>
@@ -144,9 +150,9 @@ function Rollout({ an }) {
 
 /* ─── Cost / benefit ───────────────────────────────────────── */
 const ASSUMPTION_FIELDS = [
-  { key: 'evpTripsPerYear', label: 'EVP trips per year', step: 1000, hint: '20 ambulances × 4 trips/day' },
+  { key: 'evpTripsPerYear', label: 'EVP trips per year', step: 1000, hint: '20 ambulances × 4 emergency trips a day; the live twin dispatches calls at this rate' },
   { key: 'collisionsPerYear', label: 'Ambulance junction collisions / yr', step: 0.1, hint: '5 reported since 2021, plus unreported' },
-  { key: 'collisionReduction', label: 'Share of collisions avoided', step: 0.05, hint: '0–1' },
+  { key: 'collisionReduction', label: 'Share of collisions avoided', step: 0.05, max: 1, hint: '0 to 1 (0.6 = 60%)' },
   { key: 'costPerCollisionRM', label: 'Cost per collision (RM)', step: 10000, hint: 'Vehicle > RM200k + downtime + liability' },
   { key: 'ambulanceHourValueRM', label: 'Value of an ambulance-hour (RM)', step: 10 },
   { key: 'dieselRMPerL', label: 'Diesel (RM/L)', step: 0.05 },
@@ -166,8 +172,8 @@ function CostBenefit({ an, assumptions, setAssumptions }) {
           subValues={[{ label: 'Collisions', value: fmtRM(b.collisionsRM) }, { label: 'Fleet time', value: fmtRM(b.fleetTimeRM) }, { label: 'Fuel', value: fmtRM(b.fuelRM) }]} />
         <StatCard label="Cumulative benefit by 2030" value={fmtRM(last.cumBenefit)} icon="barChart" status={last.cumBenefit >= last.cumCost ? 'normal' : 'warning'}
           subValues={[{ label: 'vs spend', value: fmtRM(last.cumCost) }, { label: 'Ratio', value: `${fmtNum(cb.roi, 2)}×` }]} />
-        <StatCard label="Payback year" value={cb.payback || 'After 2030'} icon="calendar"
-          subValues={[{ label: 'Ambulance-hours saved/yr', value: fmtNum(cb.hoursSavedYear, 0) }]} />
+        <StatCard label="Payback year" value={cb.payback || 'After 2030'} icon="calendar" status={cb.payback ? 'normal' : 'warning'}
+          subValues={[{ label: 'Ambulance-hours saved/yr', value: fmtNum(cb.hoursSavedYear, 0) }, { label: 'Per trip', value: fmtS(an.kpis.avgSavedS) }]} />
       </StatGrid>
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_380px] gap-4">
         <ChartCard title="Cumulative cost and benefit vs RM2.0M budget" subtitle="Benefits ramp with the phased rollout: 8 junctions in 2027, 16 in 2028, all 22 from 2029 (RM million)"
@@ -187,7 +193,7 @@ function CostBenefit({ an, assumptions, setAssumptions }) {
             {ASSUMPTION_FIELDS.map((f) => (
               <label key={f.key} className="block">
                 <span className="label-caps field-label">{f.label}</span>
-                <input className="input" type="number" step={f.step} min={0} value={assumptions[f.key]} onChange={(e) => set(f.key, e.target.value)} />
+                <input className="input" type="number" step={f.step} min={0} max={f.max} value={assumptions[f.key]} onChange={(e) => set(f.key, e.target.value)} />
                 {f.hint && <span className="text-[10.5px] text-fg-faint">{f.hint}</span>}
               </label>
             ))}
@@ -232,7 +238,8 @@ function Models({ modelInfo, modelLog, liveAccuracy, training, history }) {
         <Card title="GPS anomaly model" subtitle="Isolation forest on speed, jump, heading and road-distance features" actions={<Badge tone="neutral">fixed</Badge>}>
           <div className="space-y-1.5">
             <Field label="Training fixes">{fmtNum(an.samples)}</Field>
-            <Field label="Alert threshold">score ≥ {an.threshold}</Field>
+            <Field label="Calibration (99.7th pct of normal fixes)">{an.threshold}</Field>
+            <Field label="Alert rule">score ≥ {an.alertThreshold} on {an.consecutive} fixes in a row, or ≥ {an.singleFixThreshold} once</Field>
             <Field label="Rules alongside">&gt; 150 km/h jump, &gt; 60 m off-road, no patient status, requests outside trip</Field>
           </div>
         </Card>
@@ -263,7 +270,7 @@ function Models({ modelInfo, modelLog, liveAccuracy, training, history }) {
           <DataTable rowKey="at" emptyText="No retraining yet: it runs automatically when a live trip completes."
             rows={modelLog}
             columns={[
-              { key: 'at', header: 'When', render: (r) => new Date(r.at).toLocaleTimeString('en-MY', { hour12: false }) },
+              { key: 'at', header: 'Twin time', render: (r) => new Date(r.simAt ?? r.at).toLocaleTimeString('en-MY', { hour12: false, timeZone: 'Asia/Kuching' }) },
               { key: 'trigger', header: 'Triggered by', strong: true, render: (r) => r.trigger },
               { key: 'trip', header: 'Trip ETA error', className: 'tabular-nums', render: (r) => (r.tripEtaMae != null ? `${r.tripEtaMae} s` : '–') },
               { key: 'eta', header: 'ETA model', className: 'tabular-nums whitespace-nowrap', render: (r) => `v${r.eta.version}: ${r.eta.before} → ${r.eta.mae} s` },

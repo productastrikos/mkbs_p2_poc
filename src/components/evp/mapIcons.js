@@ -66,14 +66,17 @@ export function junctionIcon(junction, st, ap, selected) {
   });
 }
 
-export function ambulanceIcon({ id, heading, priority, quarantined, selected, idle }) {
+export function ambulanceIcon({ id, heading, priority, quarantined, selected, idle, status }) {
   const h = Math.round(heading / 5) * 5;
-  const key = `a|${id}|${h}|${priority}|${quarantined ? 1 : 0}|${selected ? 1 : 0}|${idle ? 1 : 0}`;
+  const busy = status === 'ON_SCENE' || status === 'HANDOVER';
+  const key = `a|${id}|${h}|${priority}|${quarantined ? 1 : 0}|${selected ? 1 : 0}|${idle ? 1 : 0}|${status}`;
   return cached(key, () => {
     if (idle) {
-      return L.divIcon({ html: `<div class="amb-idle" title="${id}"></div>`, className: 'evp-divicon', iconSize: [10, 10], iconAnchor: [5, 5] });
+      const ring = quarantined ? 'var(--color-danger)' : busy ? 'var(--color-accent)' : 'var(--color-surface)';
+      return L.divIcon({ html: `<div class="amb-idle" title="${id}" style="border-color: ${ring}"></div>`, className: 'evp-divicon', iconSize: [10, 10], iconAnchor: [5, 5] });
     }
-    const color = quarantined ? 'var(--color-neutral)' : PRIORITY_COLOR[priority] || 'var(--color-info)';
+    // Driving back to base: no EVP, so neutral rather than a priority colour.
+    const color = quarantined || status === 'REPOSITIONING' ? 'var(--color-neutral)' : PRIORITY_COLOR[priority] || 'var(--color-info)';
     const html = `
       <div class="amb-icon ${selected ? 'is-selected' : ''}">
         <svg width="34" height="34" viewBox="0 0 34 34" style="transform: rotate(${h}deg)">

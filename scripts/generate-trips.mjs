@@ -15,6 +15,7 @@ import { TZ_OFFSET_MS } from '../src/evp/traffic.js';
 const N_TRIPS = 500;
 const PERIOD_START = Date.UTC(2026, 3, 15) - TZ_OFFSET_MS; // 15 Apr 2026 00:00 Kuching
 const PERIOD_DAYS = 183;                                   // to 14 Oct 2026
+const MIN_ROUTE_M = 800;                                   // a pickup next door to the hospital is not an EVP trip
 const data = loadData();
 const rng = new Rng(2027);
 
@@ -57,11 +58,12 @@ while (trips.length < N_TRIPS && i < plans.length) {
   engine.rain = plan.rain;
   for (let k = 0; k < 600; k++) engine.step(0.5); // warm up signal cycles and queues
   const records = [];
-  engine.onTripComplete = (r) => records.push(r);
+  engine.onTripComplete = (r) => { if (r.arrived) records.push(r); };
   let trip;
   try {
     trip = engine.startTrip({ id: `H-${String(trips.length + 1).padStart(4, '0')}`, vehicleId: plan.amb.id, status: plan.status, priority: plan.priority, destination: plan.destination, originNode: plan.originNode, originName: plan.originName, allowDeviation: true });
   } catch (e) { continue; }
+  if (trip.route.length < MIN_ROUTE_M) continue;
   // ~8% of trips overlap with a second ambulance through a shared junction.
   let second = null;
   if (rng.chance(0.08) && trip.crossings.length) {
@@ -83,12 +85,13 @@ while (trips.length < N_TRIPS && i < plans.length) {
     if (!secondStarted && engine.t - trip.t0 >= secondDelay) {
       secondStarted = true;
       try {
-        engine.startTrip({ id: `H-${String(trips.length + 2).padStart(4, '0')}`, vehicleId: second.amb.id, status: second.status, priority: second.priority, destination: second.destination, originNode: second.originNode, originName: second.originName, allowDeviation: true });
+        const t2 = engine.startTrip({ id: `H-${String(trips.length + 2).padStart(4, '0')}`, vehicleId: second.amb.id, status: second.status, priority: second.priority, destination: second.destination, originNode: second.originNode, originName: second.originName, allowDeviation: true });
+        if (t2.route.length < MIN_ROUTE_M) { engine.endTrip(t2.id, 'Discarded'); second = null; }
       } catch (e) { second = null; }
     }
   }
   records.forEach((r) => {
-    if (trips.length >= N_TRIPS) return;
+    if (trips.length >= N_TRIPS || !r.arrived) return;
     r.id = `H-${String(trips.length + 1).padStart(4, '0')}`;
     trips.push(r);
   });
@@ -110,14 +113,17 @@ const stats = {
   avgSaved: Math.round((sum((r) => r.saved) / compact.length) * 10) / 10,
   preempted: sum((r) => r.junctions.filter((c) => c.preempted).length),
   crossings: sum((r) => r.junctions.length),
-  conflicts: sum((r) => r.junctions.filter((c) => c.conflict).length),
+  priorityConflicts: sum((r) => r.junctions.filter((c) => c.yieldTo).length),
+  phaseCorrections: sum((r) => r.junctions.filter((c) => c.lineCorrected).length),
   deviations: sum((r) => (r.deviation ? 1 : 0)),
 };
 console.log(stats);
+const localDate = (ms) => new Date(ms + TZ_OFFSET_MS).toISOString().slice(0, 10);
+const starts = compact.map((r) => r.start);
 
 fs.writeFileSync(path.join(DATA_DIR, 'trips.json'), JSON.stringify({
   note: 'Simulated pilot trips on the real Kuching South road network (v0 heuristic ETA and route-based movement models). Not real patient data.',
-  period: { from: '2026-04-15', to: '2026-10-14' },
+  period: { from: localDate(Math.min(...starts)), to: localDate(Math.max(...starts)) },
   stats,
   trips: compact,
 }));

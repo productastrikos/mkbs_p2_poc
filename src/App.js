@@ -9,7 +9,7 @@ export default function App() {
   return (
     <ThemeProvider>
       <DataProvider>
-        <BrowserRouter>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <Layout>
             <Routes>
               {[...ROUTES, ...EXTRA_ROUTES].map((r) => <Route key={r.path} path={r.path} element={r.element} />)}

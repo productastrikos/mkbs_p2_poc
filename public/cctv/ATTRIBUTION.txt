@@ -1,0 +1,92 @@
+Stand-in CCTV footage for the GreenLight EVP prototype. Not filmed in Kuching.
+Built by scripts/fetch-cctv.mjs from Wikimedia Commons and Coverr. Each clip is shown on several junction cameras (see public/data/cameras.json).
+Clips derived from CC BY-SA works are shared under the same licence. Coverr clips are used under the Coverr License (https://coverr.co/license).
+
+cctv/bengaluru-banashankari-a.mp4
+  "Banashankari traffic circle, Banashankari, Bangalore (2024) 02.ogg" by Gpkp, CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0)
+  https://commons.wikimedia.org/wiki/File:Banashankari_traffic_circle,_Banashankari,_Bangalore_(2024)_02.ogg
+  Filmed in Banashankari, Bengaluru, India. Cut to 19–29.3 s of the original, cropped to 16:9, scaled to 640×360 at 15 fps, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point.
+cctv/bengaluru-bda-junction.mp4
+  "Top view of BDA link road junction, Banashankari 6th stage, Bengaluru (2026).webm" by Gpkp, CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0)
+  https://commons.wikimedia.org/wiki/File:Top_view_of_BDA_link_road_junction,_Banashankari_6th_stage,_Bengaluru_(2026).webm
+  Filmed in Banashankari 6th Stage, Bengaluru, India. Cut to 0–30 s of the original, cropped to 16:9, scaled to 640×360 at 15 fps, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point.
+cctv/coverr-road-traffic.mp4
+  "Road traffic" by Coverr, Coverr License (https://coverr.co/license)
+  https://coverr.co/videos/road-traffic-0blhjb3eik
+  Location not stated by the source. Cut to 0–18.8 s of the 360p download, cropped to 16:9, scaled to 640×360 at 15 fps, mirrored left to right so traffic keeps left as in Malaysia, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point.
+cctv/tokyo-shinanomachi.mp4
+  "Southeast view from the Shinanomachi Station footbridge, 9 December 2024.webm" by Yuet Man Lee, CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0)
+  https://commons.wikimedia.org/wiki/File:Southeast_view_from_the_Shinanomachi_Station_footbridge,_9_December_2024.webm
+  Filmed in Shinanomachi, Shinjuku, Tokyo, Japan. Cut to 0–8.5 s of the original, cropped to 16:9, scaled to 640×360 at 15 fps, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point.
+cctv/cuttack-link-road.mp4
+  "Moving vehicles in Link road, Cuttack, Odisha.webm" by Subhashish Panigrahi, CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0)
+  https://commons.wikimedia.org/wiki/File:Moving_vehicles_in_Link_road,_Cuttack,_Odisha.webm
+  Filmed in Link Road, Cuttack, Odisha, India. Cut to 10–40 s of the original, cropped to 16:9, scaled to 640×360 at 15 fps, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point.
+cctv/hcmc-district-7.mp4
+  "Traffic-d7-high.webm" by Karel Bilek, CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0)
+  https://commons.wikimedia.org/wiki/File:Traffic-d7-high.webm
+  Filmed in District 7, Ho Chi Minh City, Vietnam. Cut to 0–8.4 s of the original, cropped to 16:9, scaled to 640×360 at 15 fps, mirrored left to right so traffic keeps left as in Malaysia, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point.
+cctv/coverr-vilnius-crossing.mp4
+  "People crossing the street on Gedinimo Avenue" by Coverr, Coverr License (https://coverr.co/license)
+  https://coverr.co/videos/people-crossing-the-street-on-gedinimo-avenue-lld3amgmdb
+  Filmed in Gediminas Avenue, Vilnius, Lithuania. Cut to 0–14.1 s of the 360p download, cropped to 16:9, scaled to 640×360 at 15 fps, mirrored left to right so traffic keeps left as in Malaysia, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point.
+cctv/coverr-nyc-downtown.mp4
+  "Traffic in downtown NYC" by Coverr, Coverr License (https://coverr.co/license)
+  https://coverr.co/videos/traffic-in-downtown-nyc-lxzezmug1m
+  Filmed in New York City, USA. Cut to 0–12.3 s of the 360p download, cropped to 16:9, scaled to 640×360 at 15 fps, mirrored left to right so traffic keeps left as in Malaysia, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point.
+cctv/tbilisi-embankment.mp4
+  "Tbilisi (3).ogv" by Mostafameraji, CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0)
+  https://commons.wikimedia.org/wiki/File:Tbilisi_(3).ogv
+  Filmed in Heydar Aliyev Right Embankment, Tbilisi, Georgia. Cut to 0–16.9 s of the original, cropped to 16:9, scaled to 640×360 at 15 fps, mirrored left to right so traffic keeps left as in Malaysia, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point.
+cctv/gothenburg-garda.mp4
+  "Changing lanes in Gothenburg ubt.ogv" by Tomasz Sienicki (tsca), CC BY 3.0 (https://creativecommons.org/licenses/by/3.0)
+  https://commons.wikimedia.org/wiki/File:Changing_lanes_in_Gothenburg_ubt.ogv
+  Filmed in Gårda, Gothenburg, Sweden. Cut to 0–34.5 s of the original, cropped to 16:9, scaled to 640×360 at 15 fps, mirrored left to right so traffic keeps left as in Malaysia, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point.
+cctv/bengaluru-nice-road-a.mp4
+  "NICE Road Clover leaf junction (2025) 05.webm" by Gpkp, CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0)
+  https://commons.wikimedia.org/wiki/File:NICE_Road_Clover_leaf_junction_(2025)_05.webm
+  Filmed in NICE Road, Bengaluru, India. Cut to 2–32 s of the original, cropped to 16:9, scaled to 640×360 at 15 fps, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point.
+cctv/bengaluru-nice-road-b.mp4
+  "NICE Road Clover leaf junction (2025) 04.webm" by Gpkp, CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0)
+  https://commons.wikimedia.org/wiki/File:NICE_Road_Clover_leaf_junction_(2025)_04.webm
+  Filmed in NICE Road, Bengaluru, India. Cut to 0–30 s of the original, cropped to 16:9, scaled to 640×360 at 15 fps, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point.
+cctv/liverpool-m62.mp4
+  "M62 motorway from the Greystone Road footbridge.ogv" by Rept0n1x, CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0)
+  https://commons.wikimedia.org/wiki/File:M62_motorway_from_the_Greystone_Road_footbridge.ogv
+  Filmed in M62 motorway, Broadgreen, Liverpool, UK. Cut to 0–30.7 s of the original, cropped to 16:9, scaled to 640×360 at 15 fps, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point.
+cctv/dortmund-a40.mp4
+  "Motorway A40 - on bridge above the traffic.webm" by Kathinka Engels, CC BY 3.0 (https://creativecommons.org/licenses/by/3.0)
+  https://commons.wikimedia.org/wiki/File:Motorway_A40_-_on_bridge_above_the_traffic.webm
+  Filmed in A40 motorway, Dortmund, Germany. Cut to 0–24.5 s of the original, cropped to 16:9, scaled to 640×360 at 15 fps, mirrored left to right so traffic keeps left as in Malaysia, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point.
+cctv/bethesda-i495.mp4
+  "I495 towards i270 spur from bradley blvd 20201123 171152609.webm" by G. Edward Johnson, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0)
+  https://commons.wikimedia.org/wiki/File:I495_towards_i270_spur_from_bradley_blvd_20201123_171152609.webm
+  Filmed in I-495 from Bradley Boulevard, Bethesda, Maryland, USA. Cut to 0–30 s of the original, cropped to 16:9, scaled to 640×360 at 15 fps, mirrored left to right so traffic keeps left as in Malaysia, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point.
+cctv/chicago-jane-byrne.mp4
+  "Jane M. Bryne Interchange 4-1-22.webm" by Sea Cow, CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0)
+  https://commons.wikimedia.org/wiki/File:Jane_M._Bryne_Interchange_4-1-22.webm
+  Filmed in Jane Byrne Interchange, Chicago, USA. Cut to 0–32 s of the original, cropped to 16:9, scaled to 640×360 at 15 fps, mirrored left to right so traffic keeps left as in Malaysia, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point.
+cctv/tel-aviv-ayalon-a.mp4
+  "Ayalon Freeway Azriely Towers View P1150161.ogv" by Deror_avi, CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0)
+  https://commons.wikimedia.org/wiki/File:Ayalon_Freeway_Azriely_Towers_View_P1150161.ogv
+  Filmed in Ayalon Freeway, Tel Aviv, Israel. Cut to 0–6 s of the original, cropped to 16:9, scaled to 640×360 at 15 fps, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point.
+cctv/tel-aviv-ayalon-b.mp4
+  "Ayalon Freeway Azriely Towers View P1150162.ogv" by Deror_avi, CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0)
+  https://commons.wikimedia.org/wiki/File:Ayalon_Freeway_Azriely_Towers_View_P1150162.ogv
+  Filmed in Ayalon Freeway, Tel Aviv, Israel. Cut to 0–10 s of the original, cropped to 16:9, scaled to 640×360 at 15 fps, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point.
+cctv/coverr-highway-overhead.mp4
+  "Overhead view of the highway" by Coverr, Coverr License (https://coverr.co/license)
+  https://coverr.co/videos/overhead-view-of-the-highway-9ejgoxnsm3
+  Location not stated by the source. Cut to 0–13 s of the 360p download, cropped to 16:9, scaled to 640×360 at 15 fps, mirrored left to right so traffic keeps left as in Malaysia, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point.
+cctv/coverr-highway-bridge.mp4
+  "Cars on the highway" by Coverr, Coverr License (https://coverr.co/license)
+  https://coverr.co/videos/cars-on-the-highway-axikfcuht6
+  Location not stated by the source. Cut to 0–13.5 s of the 360p download, cropped to 16:9, scaled to 640×360 at 15 fps, mirrored left to right so traffic keeps left as in Malaysia, colour muted, noise and vignette added to match a CCTV camera, audio removed, 1 s cross-fade at the loop point.
+cctv/bengaluru-banashankari-ptz.mp4
+  "Banashankari traffic circle, Banashankari, Bangalore (2024) 01.ogg" by Gpkp, CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0)
+  https://commons.wikimedia.org/wiki/File:Banashankari_traffic_circle,_Banashankari,_Bangalore_(2024)_01.ogg
+  Filmed in Banashankari, Bengaluru, India. Cut to 0–22 s of the original, cropped to 16:9, scaled to 640×360 at 15 fps, colour muted, noise and vignette added to match a CCTV camera, audio removed.
+cctv/bengaluru-nice-road-ptz.mp4
+  "NICE Road Clover leaf junction (2025) 06.webm" by Gpkp, CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0)
+  https://commons.wikimedia.org/wiki/File:NICE_Road_Clover_leaf_junction_(2025)_06.webm
+  Filmed in NICE Road, Bengaluru, India. Cut to 0–15.2 s of the original, cropped to 16:9, scaled to 640×360 at 15 fps, colour muted, noise and vignette added to match a CCTV camera, audio removed.

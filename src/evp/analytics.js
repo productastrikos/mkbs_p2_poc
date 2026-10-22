@@ -24,24 +24,37 @@ export const DEFAULT_ASSUMPTIONS = {
   dieselRMPerL: 2.15,
 };
 
-export function buildAnalytics({ trips, junctions, hospitals, assumptions = DEFAULT_ASSUMPTIONS }) {
+const DAY_MS = 86400000;
+
+export function buildAnalytics({ trips: allTrips, junctions, hospitals, assumptions = DEFAULT_ASSUMPTIONS }) {
+  // Only trips that reached their destination are compared with the baseline:
+  // a trip the operator or crew ended early has no comparable duration.
+  const trips = allTrips.filter((t) => t.arrived !== false);
   const crossings = trips.flatMap((t) => t.junctions.map((c) => ({ ...c, trip: t })));
+  const span = (ts) => (ts.length ? { from: Math.min(...ts.map((t) => t.start)), to: Math.max(...ts.map((t) => t.start)) } : null);
+  const period = span(trips);
+  const historyPeriod = span(trips.filter((t) => t.source !== 'live'));
 
   /* KPIs */
   const kpis = {
     trips: trips.length,
     liveTrips: trips.filter((t) => t.source === 'live').length,
+    endedEarly: allTrips.length - trips.length,
+    tripsWithJunctions: trips.filter((t) => t.junctions.length).length,
     avgSavedS: avg(trips.map((t) => t.saved)),
     totalSavedS: sum(trips.map((t) => t.saved)),
     avgDurationS: avg(trips.map((t) => t.duration)),
     avgBaselineS: avg(trips.map((t) => t.baseline)),
     crossings: crossings.length,
     preempted: crossings.filter((c) => c.preempted).length,
+    // A crossing where the no-EVP ambulance would have met a red (> 2 s wait) but passed without stopping.
     conflictsAvoided: sum(trips.map((t) => t.conflictsAvoided || 0)),
-    priorityConflicts: crossings.filter((c) => c.conflict).length,
+    // Each priority conflict is counted once, on the ambulance that yielded.
+    priorityConflicts: crossings.filter((c) => c.yieldTo).length,
+    phaseCorrections: crossings.filter((c) => c.lineCorrected || c.override === 'PHASE_CORRECTION').length,
     idleSavedH: sum(trips.map((t) => t.idleSavedS || 0)) / 3600,
     fuelSavedL: sum(trips.map((t) => t.fuelSavedL || 0)),
-    avgGreenLead: avg(crossings.map((c) => c.greenLead).filter((x) => x != null)),
+    avgGreenLead: avg(crossings.filter((c) => c.preempted && c.greenLead != null).map((c) => c.greenLead)),
     pedProtect: crossings.filter((c) => c.pedProtect > 0).length,
     overrides: crossings.filter((c) => c.override).length,
     anomalies: sum(trips.map((t) => (t.anomalies || []).length)),
@@ -65,12 +78,14 @@ export function buildAnalytics({ trips, junctions, hospitals, assumptions = DEFA
     preempted: sum(months[m].map((t) => t.junctions.filter((c) => c.preempted).length)),
   }));
 
-  /* Distribution of seconds saved per trip */
+  /* Distribution of seconds saved per trip (every trip lands in exactly one bin) */
   const bins = [0, 30, 60, 90, 120, 180, 240, 1e9];
   const savedHistogram = bins.slice(0, -1).map((lo, i) => ({
     label: bins[i + 1] > 1e8 ? `${lo}+` : `${lo}–${bins[i + 1]}`,
     count: trips.filter((t) => t.saved >= lo && t.saved < bins[i + 1]).length,
   }));
+  const slower = trips.filter((t) => t.saved < 0).length;
+  if (slower) savedHistogram.unshift({ label: '< 0', count: slower });
 
   /* By hospital */
   const byHospital = hospitals.map((h) => {
@@ -85,20 +100,23 @@ export function buildAnalytics({ trips, junctions, hospitals, assumptions = DEFA
   });
 
   /* Per junction */
-  const monthsSpan = Math.max(1, Object.keys(months).length - 0.5);
+  const monthsSpan = period ? Math.max(1, (period.to - period.from) / DAY_MS / 30.44) : 1;
   const junctionStats = junctions.map((j) => {
     const cs = crossings.filter((c) => c.j === j.id);
     const byHour = Array.from({ length: 24 }, () => []);
     cs.forEach((c) => byHour[localParts(c.trip.start + c.arrival * 1000).hour].push(c.baseWait));
+    const pre = cs.filter((c) => c.preempted);
     return {
       id: j.id, name: j.name, poc: j.poc, scatsSite: j.scatsSite,
       crossings: cs.length,
+      preempted: pre.length,
       perMonth: cs.length / monthsSpan,
       avgBaseWait: avg(cs.map((c) => c.baseWait)),
       avgWait: avg(cs.map((c) => c.wait)),
       savedMin: sum(cs.map((c) => c.baseWait - c.wait)) / 60,
-      preemptRate: cs.length ? cs.filter((c) => c.preempted).length / cs.length : 0,
-      avgGreenLead: avg(cs.map((c) => c.greenLead).filter((x) => x != null)),
+      preemptRate: cs.length ? pre.length / cs.length : 0,
+      avgGreenLead: avg(pre.map((c) => c.greenLead).filter((x) => x != null)),
+      phaseCorrections: cs.filter((c) => c.lineCorrected || c.override === 'PHASE_CORRECTION').length,
       redExposure: cs.length ? cs.filter((c) => c.baseWait > 2).length / cs.length : 0,
       pedProtect: cs.filter((c) => c.pedProtect > 0).length,
       etaMae: avg(cs.map((c) => c.etaMae).filter((x) => x != null)),
@@ -149,7 +167,7 @@ export function buildAnalytics({ trips, junctions, hospitals, assumptions = DEFA
   const payback = costBenefit.find((r) => r.cumBenefit >= r.cumCost)?.year || null;
 
   return {
-    kpis, monthly, savedHistogram, byHospital, byPriority, junctionStats, ranking,
+    kpis, period, historyPeriod, monthsSpan, monthly, savedHistogram, byHospital, byPriority, junctionStats, ranking,
     costBenefit: { rows: costBenefit, benefitYear, hoursSavedYear, payback, assumptions: a, budget: BUDGET, roi: cumBenefit / BUDGET.totalRM },
   };
 }
@@ -169,24 +187,34 @@ export function etaAccuracy(trips) {
 }
 
 /** Compact facts for the LLM assistant and monthly summaries. */
-export function analyticsDigest(an, { trips, junctions, hospitals, alerts = [], models = {}, month }) {
+export function analyticsDigest(an, { trips: allTrips, junctions, hospitals, alerts = [], quarantined = [], models = {}, month }) {
   const jName = Object.fromEntries(junctions.map((j) => [j.id, j.name]));
   const hName = Object.fromEntries(hospitals.map((h) => [h.id, h.name]));
+  const trips = allTrips.filter((t) => t.arrived !== false);
   const monthTrips = month ? trips.filter((t) => localParts(t.start).monthKey === month) : [];
+  const day = (ms) => localParts(ms).dateKey;
   const perJunctionMonth = {};
   monthTrips.forEach((t) => t.junctions.forEach((c) => {
     const s = perJunctionMonth[c.j] || (perJunctionMonth[c.j] = { crossings: 0, residualWaitS: 0, baselineWaitS: 0 });
     s.crossings++; s.residualWaitS += c.wait; s.baselineWaitS += c.baseWait;
   }));
   const k = an.kpis;
+  const open = alerts.filter((a) => a.status === 'open');
   return {
     scope: 'GreenLight EVP prototype, MBKS Kuching South. Simulated pilot data on the real road network.',
-    asOf: new Date().toISOString().slice(0, 10),
+    asOf: day(Date.now()),
+    period: an.period ? { from: day(an.period.from), to: day(an.period.to) } : null,
+    definitions: {
+      conflictingMovementsAvoided: 'Junction crossings where the ambulance would have met a red without EVP (> 2 s wait) but passed without stopping.',
+      priorityConflictsResolved: 'Times one ambulance yielded to a higher-priority (or nearer) ambulance at the same junction.',
+      phaseCorrections: 'Greens re-targeted because the ambulance took a different movement than predicted.',
+      preempted: 'Crossings where the EVP green was already showing for the ambulance\'s movement when it arrived.',
+    },
     kpis: {
-      trips: k.trips, liveTrips: k.liveTrips, avgSecondsSavedPerTrip: round(k.avgSavedS), totalHoursSaved: round(k.totalSavedS / 3600),
+      trips: k.trips, liveTrips: k.liveTrips, tripsEndedEarlyExcluded: k.endedEarly, avgSecondsSavedPerTrip: round(k.avgSavedS), totalHoursSaved: round(k.totalSavedS / 3600),
       avgTripS: round(k.avgDurationS), avgBaselineTripS: round(k.avgBaselineS), reductionPct: round(k.reductionPct),
       junctionCrossings: k.crossings, preemptedPct: round(k.preemptRate * 100), conflictingMovementsAvoided: k.conflictsAvoided,
-      priorityConflictsResolved: k.priorityConflicts, avgGreenLeadS: round(k.avgGreenLead), pedestrianProtectionEvents: k.pedProtect,
+      priorityConflictsResolved: k.priorityConflicts, phaseCorrections: k.phaseCorrections, avgGreenLeadS: round(k.avgGreenLead), pedestrianProtectionEvents: k.pedProtect,
       safetyOverrides: k.overrides, fuelSavedL: round(k.fuelSavedL), idleHoursSaved: round(k.idleSavedH),
     },
     monthly: an.monthly,
@@ -198,8 +226,16 @@ export function analyticsDigest(an, { trips, junctions, hospitals, alerts = [], 
       junctions: Object.entries(perJunctionMonth).map(([id, s]) => ({ id, name: jName[id], ...s, residualWaitS: round(s.residualWaitS), baselineWaitS: round(s.baselineWaitS) })).sort((a, b) => b.baselineWaitS - a.baselineWaitS),
     } : null,
     rolloutTop10: an.ranking.slice(0, 10).map((r) => ({ rank: r.rank, id: r.id, name: r.name, phase: r.rollout, delayScore: round(r.delayScore, 2), riskScore: round(r.riskScore, 2), collisions: r.incidents.ambulanceCollisions, nearMisses: r.incidents.nearMisses })),
-    costBenefit: { budgetRM: BUDGET.totalRM, benefitPerYearRM: Math.round(an.costBenefit.benefitYear.totalRM), paybackYear: an.costBenefit.payback, assumptions: an.costBenefit.assumptions },
-    security: { alerts: alerts.length, byType: alerts.reduce((m, a) => { m[a.type] = (m[a.type] || 0) + 1; return m; }, {}) },
+    costBenefit: {
+      budgetRM: BUDGET.totalRM, benefitPerYearRM: Math.round(an.costBenefit.benefitYear.totalRM), cumulativeBenefitBy2030RM: an.costBenefit.rows[an.costBenefit.rows.length - 1].cumBenefit,
+      benefitToBudgetRatio: round(an.costBenefit.roi, 2), paybackYear: an.costBenefit.payback, assumptions: an.costBenefit.assumptions,
+    },
+    security: {
+      scope: 'This live session only',
+      alerts: alerts.length, open: open.length, quarantinedUnits: quarantined,
+      repeatsFolded: alerts.reduce((s, a) => s + Math.max(0, (a.count || 1) - 1), 0),
+      byType: alerts.reduce((m, a) => { m[a.type] = (m[a.type] || 0) + 1; return m; }, {}),
+    },
     models,
     recentLiveTrips: trips.filter((t) => t.source === 'live').slice(0, 8).map((t) => ({ id: t.id, ambulance: t.ambulanceId, to: t.destinationName, priority: t.priority, durationS: t.duration, savedS: t.saved, junctions: t.junctions.map((c) => c.j).join(' ') })),
   };

@@ -4,13 +4,18 @@
  *
  * Trains the models on the historical trips exactly as the browser does,
  * then drives the engine through each scenario and asserts the outcome. */
-import { loadData, readJson } from './lib/node-data.mjs';
+import fs from 'node:fs';
+import path from 'node:path';
+import { loadData, readJson, DATA_DIR } from './lib/node-data.mjs';
 import { SimEngine } from '../src/evp/engine/simulation.js';
-import { EtaModel, MovementModel, AnomalyModel } from '../src/evp/ml/models.js';
+import { FleetOps } from '../src/evp/engine/operations.js';
+import { EtaModel, MovementModel, AnomalyModel, RouteMovement } from '../src/evp/ml/models.js';
 import * as S from '../src/evp/engine/scenarios.js';
 import { ALERT_TYPES } from '../src/evp/engine/guard.js';
+import { phaseCovering, phaseServes } from '../src/evp/junctions.js';
 import { buildAnalytics } from '../src/evp/analytics.js';
 import { offlineTripReport } from '../src/evp/reports.js';
+import { Rng } from '../src/evp/rng.js';
 
 const data = loadData();
 const { trips } = readJson('trips');
@@ -89,11 +94,18 @@ function runUntil(e, done, maxS = 1800) {
   check('GPS spoof flagged and vehicle quarantined', Boolean(a) && e.guard.quarantined.has(a.vehicleId), a?.detail);
   runUntil(e, () => false, 30);
   check('No grants held by the quarantined vehicle', ![...e.decision.grants.values()].some((g) => g.vehicleId === a?.vehicleId));
+  const jumps = e.alerts.filter((x) => x.type === ALERT_TYPES.SPEED_JUMP);
+  check('One spoofed fix raises one alert (the jump back is not a second alert)', jumps.length === 1 && jumps[0].count === 1, `${jumps.length} alert(s), count ${jumps[0]?.count}`);
+  const blocked0 = e.guard.stats.requestsBlocked;
   S.unregistered(e);
   const u = e.alerts.find((x) => x.type === ALERT_TYPES.UNREGISTERED);
   check('Unregistered vehicle request blocked', Boolean(u) && /blocked/i.test(u.action), u?.detail);
   S.misuse(e);
-  check('Repeated requests outside a trip flagged', e.alerts.some((x) => x.type === ALERT_TYPES.REPEATED_OUTSIDE_TRIP));
+  runUntil(e, () => e.alerts.some((x) => x.type === ALERT_TYPES.REPEATED_OUTSIDE_TRIP), 60);
+  const noTrip = e.alerts.filter((x) => x.type === ALERT_TYPES.NO_TRIP);
+  check('Repeated requests outside a trip flagged and quarantined', e.alerts.some((x) => x.type === ALERT_TYPES.REPEATED_OUTSIDE_TRIP) && e.guard.quarantined.has('AMB-16'),
+    `${noTrip.length} "No active trip" alert (${noTrip[0]?.count}×) then "Repeated requests"`);
+  check('Blocked-request counter matches the requests actually blocked', e.guard.stats.requestsBlocked - blocked0 === 4, `${e.guard.stats.requestsBlocked - blocked0} (1 unregistered + 3 outside a trip)`);
   S.noPatientStatus(e);
   runUntil(e, () => e.alerts.some((x) => x.type === ALERT_TYPES.NO_PATIENT_STATUS), 400);
   check('Request without patient status blocked', e.alerts.some((x) => x.type === ALERT_TYPES.NO_PATIENT_STATUS));
@@ -112,9 +124,84 @@ function runUntil(e, done, maxS = 1800) {
   const ok = e.divert(trip.vehicleId);
   runUntil(e, () => trip.overrides.some((o) => o.code === 'CANCEL_DIVERT') || !trip.active, 200);
   check('Request cancelled / route updated when ambulance diverts > 20 s', ok && trip.overrides.some((o) => o.code === 'CANCEL_DIVERT'));
+  const recs = [];
+  e.onTripComplete = (r) => recs.push(r);
+  const veh = e.vehicles.get(trip.vehicleId);
+  e.endTrip(trip.id, 'Ended by operator');
+  const ended = e.events.find((ev) => ev.vehicleId === trip.vehicleId && /ended before reaching/.test(ev.text));
+  check('Trip ended by the operator is not logged as an arrival', recs[0]?.arrived === false && Boolean(ended) && !e.events.some((ev) => ev.vehicleId === trip.vehicleId && / arrived at /.test(ev.text)) && !veh.location.includes(trip.destination.name), `${ended?.text}; unit now at "${veh.location}"`);
 }
 
-/* 5. Analytics and report. */
+/* 4b. A green held for the wrong movement is corrected at the stop line. */
+{
+  const e = fresh(15);
+  const res = S.sghRun(e, { priority: 'Urgent' });
+  const trip = e.trips.get(res.tripIds[0]);
+  e.models.movement = RouteMovement; // trusts the planned route only, like the v0 system
+  const target = trip.crossings.map((c) => {
+    const j = e.junctionsById.get(c.j);
+    const alt = Object.keys(j.movements[c.arm]).find((m) => m !== c.move && m !== 'U' && !phaseServes(phaseCovering(j, c.arm, [m]), c.arm, c.move));
+    return alt ? { c, alt } : null;
+  }).find(Boolean);
+  target.c.pmv = target.alt; // the navigation route says one thing, the crew does another
+  const recs = [];
+  e.onTripComplete = (r) => recs.push(r);
+  runUntil(e, () => recs.length > 0);
+  const jc = recs[0]?.junctions.find((c) => c.j === target.c.j);
+  check('Wrong-movement green corrected at the stop line (no full-cycle wait)', Boolean(jc?.lineCorrected) && jc.phaseServesMove && jc.wait < 40,
+    `${target.c.j}: requested for ${target.alt}, ambulance went ${target.c.move}; corrected to ${jc?.phase}, waited ${jc?.wait} s (no-EVP ${jc?.baseWait} s)`);
+}
+
+/* 4c. Fleet operations: a call runs the whole cycle and the unit ends up back at base. */
+{
+  const e = fresh(16);
+  const rng = new Rng(4);
+  const ops = new FleetOps(e, { random: () => rng.next(), enabled: false });
+  const m = ops.dispatch({ placeId: e.data.places[3].id, priority: 'Urgent' });
+  const stages = [];
+  const recs = [];
+  e.onTripComplete = (r) => recs.push(r);
+  runUntil(e, () => { ops.update(); if (stages[stages.length - 1] !== m.stage) stages.push(m.stage); return !ops.missions.has(m.id); }, 7200);
+  const veh = e.vehicles.get(m.vehicleId);
+  check('Fleet cycle: dispatch → on scene → … → back at base', !ops.missions.has(m.id) && veh.atBase && !veh.trip && stages.includes('ON_SCENE') && stages.includes('RETURNING'), `${m.id} ${m.vehicleId}: ${stages.join(' → ')}; ${recs.length} EVP trip record(s)`);
+  check('Return-to-base drive sends no EVP requests', recs.every((r) => r.status !== 'RETURNING') && e.guard.stats.requestsBlocked === 0);
+}
+
+/* 4d. Normal fleet operation raises no security alerts (no false quarantines). */
+{
+  const e = fresh(21);
+  const rng = new Rng(9);
+  const ops = new FleetOps(e, { random: () => rng.next(), maxActive: 6 });
+  for (let k = 0; k < 4; k++) ops.dispatch();
+  const end = e.t + 3 * 3600;
+  while (e.t < end) { e.step(0.1); ops.update(); }
+  check('3 h of normal fleet operation: no false security alerts', e.alerts.length === 0 && e.guard.quarantined.size === 0,
+    `${ops.calls} calls, ${e.guard.stats.fixesChecked} GPS fixes checked, ${e.alerts.length} alert(s)`);
+}
+
+/* 5. CCTV: exactly one camera on every signalised approach, no clip repeated
+   within a junction, every clip on disk and credited under an open licence. */
+{
+  const pub = path.join(DATA_DIR, '..');
+  const cams = data.cameras;
+  const clips = data.cctvClips;
+  const arms = data.junctions.flatMap((j) => j.arms.map((a) => ({ j: j.id, arm: a.id })));
+  const uncovered = arms.filter((a) => cams.filter((c) => c.junctionId === a.j && c.arm === a.arm).length !== 1);
+  const misplaced = cams.filter((c) => !arms.some((a) => a.j === c.junctionId && a.arm === c.arm));
+  const orphan = cams.filter((c) => !clips.some((k) => k.id === c.clip));
+  const repeated = data.junctions.filter((j) => { const used = data.camerasByJ.get(j.id).map((c) => c.clip); return new Set(used).size !== used.length; });
+  const missing = clips.filter((k) => !fs.existsSync(path.join(pub, k.src)) || !fs.existsSync(path.join(pub, k.poster)));
+  const LICENCE = /^(CC0|CC BY(-SA)? [\d.]+|Public domain|Coverr License)$/;
+  const SOURCE = /^https:\/\/(commons\.wikimedia\.org\/wiki\/File:|coverr\.co\/videos\/)/;
+  const uncredited = clips.filter((k) => !k.footage?.author || !SOURCE.test(k.footage?.sourceUrl || '') || !LICENCE.test(k.footage?.licence || '') || !k.footage?.licenceUrl);
+  const unique = new Set(cams.map((c) => c.id)).size === cams.length;
+  check('CCTV: one camera per signalised approach, clips distinct per junction, on disk and openly licensed',
+    cams.length === arms.length && unique && !uncovered.length && !misplaced.length && !orphan.length && !repeated.length && !missing.length && !uncredited.length,
+    `${cams.length} cameras on ${arms.length} approaches of ${data.junctions.length} junctions, ${clips.length} clips (${clips.filter((k) => k.mirrored).length} mirrored for left-hand traffic)`
+      + `${[...uncovered.map((a) => `${a.j}/${a.arm}`), ...misplaced.map((c) => c.id), ...orphan.map((c) => c.id), ...repeated.map((j) => `${j.id} repeats a clip`), ...missing.map((k) => k.src), ...uncredited.map((k) => k.id)].map((x) => ` FAIL ${x}`).join('')}`);
+}
+
+/* 6. Analytics and report. */
 {
   const a = buildAnalytics({ trips, junctions: data.junctions, hospitals: data.hospitals });
   check('Analytics: seconds saved per trip', a.kpis.avgSavedS > 0, `${a.kpis.avgSavedS.toFixed(1)} s/trip over ${a.kpis.trips} trips`);

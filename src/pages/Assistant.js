@@ -31,11 +31,12 @@ function LlmBadge({ llm }) {
 function useDigest(month) {
   const { analytics, allTrips, data, modelInfo } = useData();
   const snap = useSim();
-  const alertCount = snap?.alerts.length || 0;
+  // Recompute when alerts change state, not on every 5 Hz snapshot.
+  const alertKey = (snap?.alerts || []).map((a) => `${a.id}${a.status}${a.count}`).join('|') + (snap?.quarantined || []).join(',');
   return useMemo(() => analyticsDigest(analytics, {
-    trips: allTrips, junctions: data.junctions, hospitals: data.hospitals, alerts: snap?.alerts || [], month,
+    trips: allTrips, junctions: data.junctions, hospitals: data.hospitals, alerts: snap?.alerts || [], quarantined: snap?.quarantined || [], month,
     models: { etaVersion: modelInfo.eta.version, etaHoldoutMaeS: modelInfo.eta.mae, movementVersion: modelInfo.movement.version, movementAccuracyPct: Math.round(modelInfo.movement.accuracy * 1000) / 10 },
-  }), [analytics, allTrips, data, modelInfo, month, alertCount]); // eslint-disable-line react-hooks/exhaustive-deps
+  }), [analytics, allTrips, data, modelInfo, month, alertKey]); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
 /* Run an LLM stream with an offline fallback; returns { text, source }. */
@@ -160,12 +161,14 @@ function ReportOutput({ result, busy, filename }) {
 
 function TripReport({ initialTrip }) {
   const { llm, liveTrips, history, data } = useData();
-  const options = useMemo(() => [...liveTrips, ...history.slice().sort((a, b) => b.start - a.start).filter((t) => t.junctions.length).slice(0, 60)], [liveTrips, history]);
-  const [tripId, setTripId] = useState(initialTrip || options[0]?.id);
+  const recentHistory = useMemo(() => history.slice().sort((a, b) => b.start - a.start).filter((t) => t.junctions.length).slice(0, 60), [history]);
+  const [tripId, setTripId] = useState(initialTrip || liveTrips[0]?.id || recentHistory[0]?.id);
   const [result, setResult] = useState(null);
   const [busy, setBusy] = useState(false);
   const abortRef = useRef(null);
-  const trip = options.find((t) => t.id === tripId) || [...liveTrips, ...history].find((t) => t.id === tripId);
+  const trip = liveTrips.find((t) => t.id === tripId) || history.find((t) => t.id === tripId);
+  // A trip opened from a link (e.g. an older one from Analytics) stays selectable.
+  const historyOptions = trip && trip.source !== 'live' && !recentHistory.includes(trip) ? [trip, ...recentHistory] : recentHistory;
   const ctx = useMemo(() => ({ junctions: data.junctions, hospitals: data.hospitals, ambulances: data.ambulances }), [data]);
 
   const run = async (t = trip) => {
@@ -188,7 +191,12 @@ function TripReport({ initialTrip }) {
     } finally { setBusy(false); }
   };
 
-  useEffect(() => { if (initialTrip && trip) run(trip); }, [initialTrip]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Opened with ?trip= (from a notification, the tablet or Analytics): select it and write its report once.
+  const autoRan = useRef(null);
+  useEffect(() => { if (initialTrip) { setTripId(initialTrip); setResult(null); } }, [initialTrip]);
+  useEffect(() => {
+    if (initialTrip && trip?.id === initialTrip && autoRan.current !== initialTrip) { autoRan.current = initialTrip; run(trip); }
+  }, [initialTrip, trip]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => abortRef.current?.abort(), []);
 
   return (
@@ -196,13 +204,13 @@ function TripReport({ initialTrip }) {
       <div className="flex gap-2 flex-wrap items-end">
         <label className="block flex-1 min-w-[220px]"><span className="label-caps field-label">Trip</span>
           <select className="select" value={tripId || ''} onChange={(e) => { setTripId(e.target.value); setResult(null); }}>
-            {liveTrips.length > 0 && <optgroup label="Live trips (this session)">{liveTrips.map((t) => <option key={t.id} value={t.id}>{t.id} · {t.ambulanceId} → {t.destinationName} · {Math.round(t.saved)} s saved</option>)}</optgroup>}
-            <optgroup label="Historical trips">{options.filter((t) => t.source !== 'live').map((t) => <option key={t.id} value={t.id}>{t.id} · {fmtLocal(t.start)} · {t.ambulanceId} → {t.destinationName}</option>)}</optgroup>
+            {liveTrips.length > 0 && <optgroup label="Live trips (this session)">{liveTrips.map((t) => <option key={t.id} value={t.id}>{t.id} · {t.ambulanceId} → {t.destinationName} · {t.arrived === false ? 'ended early' : `${Math.round(t.saved)} s saved`}</option>)}</optgroup>}
+            <optgroup label="Pilot history (most recent 60 with EVP junctions)">{historyOptions.map((t) => <option key={t.id} value={t.id}>{t.id} · {fmtLocal(t.start)} · {t.ambulanceId} → {t.destinationName}</option>)}</optgroup>
           </select>
         </label>
         <Button icon="sparkles" onClick={() => run()} disabled={!trip || busy}>Generate report</Button>
       </div>
-      {trip && <p className="text-[11px] text-fg-faint">{trip.priority} · {trip.junctions.length} junctions · {Math.round(trip.duration)} s with EVP vs {Math.round(trip.baseline)} s baseline</p>}
+      {trip && <p className="text-[11px] text-fg-faint">{trip.priority} · {trip.status === 'TO_HOSPITAL' ? 'To hospital' : 'To patient'} · {trip.junctions.length} EVP junction{trip.junctions.length === 1 ? '' : 's'} · {Math.round(trip.duration)} s with EVP vs {Math.round(trip.baseline)} s no-EVP baseline{trip.arrived === false ? ` · ${trip.endReason}` : ''}</p>}
       <ReportOutput result={result} busy={busy} filename={`${tripId}-post-trip-report.md`} />
     </div>
   );

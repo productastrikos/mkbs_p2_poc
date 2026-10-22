@@ -2,7 +2,8 @@ import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Icon } from '../ui';
 import { NAV_SECTIONS, routeFor } from '../../routes';
-import { APP, USER } from '../../config';
+import { APP } from '../../config';
+import { useData } from '../../data/DataProvider';
 import { initials } from '../../utils';
 
 export function BrandMark() {
@@ -15,6 +16,7 @@ export default function Sidebar({ collapsed }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const active = routeFor(pathname)?.path;
+  const { operator } = useData();
 
   return (
     <aside className={`sidebar ${collapsed ? 'is-collapsed' : ''}`}>
@@ -45,10 +47,10 @@ export default function Sidebar({ collapsed }) {
 
       {!collapsed && (
         <div className="sidebar-user">
-          <div className="avatar" style={{ width: 30, height: 30, fontSize: 11, borderRadius: 8 }}>{initials(USER.name)}</div>
+          <div className="avatar" style={{ width: 30, height: 30, fontSize: 11, borderRadius: 8 }}>{initials(operator.name)}</div>
           <div className="min-w-0">
-            <p className="text-xs font-semibold text-fg truncate">{USER.name}</p>
-            <p className="text-[10px] text-fg-faint truncate">{USER.role}</p>
+            <p className="text-xs font-semibold text-fg truncate">{operator.name}</p>
+            <p className="text-[10px] text-fg-faint truncate">{operator.role}</p>
           </div>
         </div>
       )}
