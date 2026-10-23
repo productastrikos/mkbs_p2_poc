@@ -2,17 +2,20 @@ import React from 'react';
 
 /**
  * DataTable
- *   columns: [{ key, header, render?: (row) => node, className?, strong?, mono? }]
+ *   columns: [{ key, header, render?: (row) => node, className?, strong?, mono?, numeric? }]
+ *            numeric (or a 'tabular-nums' className) right-aligns the column
  *   rows:    array of objects
  *   rowKey:  field used as React key (default 'id')
  *   onRowClick: makes rows clickable
  */
+const isNumeric = (c) => c.numeric ?? /\btabular-nums\b/.test(c.className || '');
+
 export default function DataTable({ columns, rows, rowKey = 'id', onRowClick, emptyText = 'No data to show.' }) {
   return (
     <div className="overflow-x-auto">
       <table className="table">
         <thead>
-          <tr>{columns.map((c) => <th key={c.key}>{c.header}</th>)}</tr>
+          <tr>{columns.map((c) => <th key={c.key} className={isNumeric(c) ? 'numeric' : undefined}>{c.header}</th>)}</tr>
         </thead>
         <tbody>
           {rows.map((row) => (
@@ -22,7 +25,7 @@ export default function DataTable({ columns, rows, rowKey = 'id', onRowClick, em
               onClick={onRowClick ? () => onRowClick(row) : undefined}
             >
               {columns.map((c) => (
-                <td key={c.key} className={[c.strong && 'cell-strong', c.mono && 'cell-mono', c.className].filter(Boolean).join(' ')}>
+                <td key={c.key} className={[c.strong && 'cell-strong', c.mono && 'cell-mono', isNumeric(c) && 'numeric', c.className].filter(Boolean).join(' ')}>
                   {c.render ? c.render(row) : row[c.key]}
                 </td>
               ))}

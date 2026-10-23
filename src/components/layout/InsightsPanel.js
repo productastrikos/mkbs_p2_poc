@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Badge, Button, Icon, IconButton, Tabs } from '../ui';
+import { Badge, Button, Icon, IconButton, Tabs, EmptyState } from '../ui';
 import { useData, useSim } from '../../data/DataProvider';
 import { ACTION_FORMS } from '../../data/actionForms';
 import { liveAdvisories } from '../../data/insights';
@@ -39,17 +39,17 @@ function ActionForm({ form, onChange, onSubmit, onCancel, busy }) {
   const cfg = ACTION_FORMS[form.action];
   const missing = cfg.fields.filter((f) => f.required && !String(form.values[f.key] || '').trim());
   return (
-    <div className="absolute inset-0 top-[57px] z-10 flex flex-col bg-surface">
-      <div className="px-4 py-3 border-b">
-        <p className="text-sm font-bold text-fg">{cfg.title}</p>
-        <p className="text-[10px] text-fg-faint mt-0.5 line-clamp-1">{form.insightTitle}</p>
+    <div className="absolute inset-0 z-10 flex flex-col bg-surface-elevated animate-fade-in">
+      <div className="px-5 py-3 border-b">
+        <p className="font-display text-sm font-bold text-fg">{cfg.title}</p>
+        <p className="text-[11px] text-fg-faint mt-0.5 line-clamp-1">{form.insightTitle}</p>
       </div>
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto p-5 space-y-3">
         {cfg.fields.map((f) => {
           const common = { value: form.values[f.key] || '', onChange: (e) => onChange(f.key, e.target.value), placeholder: f.placeholder };
           return (
             <label key={f.key} className="block">
-              <span className="label-caps field-label">{f.label}{f.required ? ' *' : ''}</span>
+              <span className="app-label">{f.label}{f.required && <span className="req" aria-hidden="true">*</span>}</span>
               {f.type === 'select' && <select className="select" {...common}>{f.options.map((o) => <option key={o}>{o}</option>)}</select>}
               {f.type === 'textarea' && <textarea className="textarea" rows={5} {...common} />}
               {f.type === 'text' && <input className="input" {...common} />}
@@ -57,9 +57,9 @@ function ActionForm({ form, onChange, onSubmit, onCancel, busy }) {
           );
         })}
       </div>
-      <div className="p-4 border-t space-y-2">
-        {missing.length > 0 && <p className="text-[11px] text-warning">Fill in: {missing.map((f) => f.label).join(', ')}</p>}
-        <Button block onClick={onSubmit} disabled={busy || missing.length > 0}>{busy ? 'Submitting…' : `Submit: ${cfg.title}`}</Button>
+      <div className="panel-footer flex-col items-stretch">
+        {missing.length > 0 && <p className="app-help">Fill in: {missing.map((f) => f.label).join(', ')}</p>}
+        <Button block onClick={onSubmit} disabled={busy || missing.length > 0}>{busy ? 'Submitting…' : cfg.title}</Button>
         <Button block variant="ghost" onClick={onCancel}>Cancel</Button>
       </div>
     </div>
@@ -68,8 +68,8 @@ function ActionForm({ form, onChange, onSubmit, onCancel, busy }) {
 
 function InsightCard({ ins, open, onToggle, onAction, onLink }) {
   return (
-    <div className="card overflow-hidden" style={{ borderColor: ins.priority === 'critical' ? 'var(--color-danger-border, var(--color-danger))' : 'var(--color-accent-border)' }}>
-      <button type="button" className="w-full text-left p-3.5" onClick={onToggle} aria-expanded={open}>
+    <div className="card" style={ins.priority === 'critical' ? { borderColor: 'var(--app-danger-border)' } : undefined}>
+      <button type="button" className="w-full text-left px-4 py-3.5" onClick={onToggle} aria-expanded={open}>
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <Badge tone={PRIORITY_TONE[ins.priority] || 'neutral'}>{ins.priority.toUpperCase()}</Badge>
@@ -77,7 +77,7 @@ function InsightCard({ ins, open, onToggle, onAction, onLink }) {
           </div>
           <Icon name="chevronDown" size={14} className={`text-fg-faint transition-transform ${open ? 'rotate-180' : ''}`} />
         </div>
-        <p className="text-[13px] font-semibold text-fg leading-snug">{ins.title}</p>
+        <p className="text-[13px] font-bold text-fg leading-snug">{ins.title}</p>
       </button>
       {open && (
         <div className="border-t divide-y divide-line">
@@ -152,48 +152,55 @@ export default function InsightsPanel({ onClose }) {
   const go = (to) => { navigate(to); onClose(); };
 
   return (
-    <aside className="side-panel w-96 max-w-full" style={{ borderLeft: '2px solid var(--color-accent-border)' }}>
+    <aside className="side-panel" aria-label="AI insights">
       <div className="panel-header">
         <div>
-          <h3 className="flex items-center gap-1.5 text-sm font-semibold text-accent"><Icon name="sparkles" size={15} />AI Insights</h3>
+          <h2 className="side-panel-title"><Icon name="sparkles" size={16} />AI insights</h2>
           <p className="text-xs text-fg-faint">{live.length} live advisor{live.length === 1 ? 'y' : 'ies'} · {insights.length} from corridor analytics</p>
         </div>
-        <IconButton icon="close" label="Close" plain onClick={onClose} />
+        <IconButton icon="close" label="Close AI insights" onClick={onClose} />
       </div>
-      <div className="px-3 pt-3">
-        <Tabs size="sm" value={tab} onChange={setTab} tabs={[{ value: 'insights', label: `Insights (${all.length})` }, { value: 'actions', label: `Actions (${actions.length})` }]} />
-      </div>
+      <div className="relative flex-1 min-h-0 flex flex-col">
+        <div className="px-4 pt-4">
+          <Tabs size="sm" value={tab} onChange={setTab} tabs={[{ value: 'insights', label: `Insights (${all.length})` }, { value: 'actions', label: `Actions (${actions.length})` }]} />
+        </div>
 
-      {toast && <div className="absolute top-16 left-3 right-3 z-20 tile tone-success text-xs font-semibold">✓ {toast}</div>}
-
-      {form && (
-        <ActionForm
-          form={form}
-          busy={busy}
-          onChange={(k, v) => setForm((f) => ({ ...f, values: { ...f.values, [k]: v } }))}
-          onSubmit={submit}
-          onCancel={() => setForm(null)}
-        />
-      )}
-
-      <div className="flex-1 overflow-y-auto p-3 space-y-3">
-        {tab === 'insights' && all.map((ins) => (
-          <InsightCard key={ins.id} ins={ins} open={expanded === ins.id} onToggle={() => setExpanded(expanded === ins.id ? null : ins.id)} onAction={openForm} onLink={go} />
-        ))}
-        {tab === 'insights' && !all.length && <p className="text-center text-sm text-fg-faint py-8">No insights yet.</p>}
-        {tab === 'actions' && (actions.length ? actions.map((a) => (
-          <div key={a.id} className="tile space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-fg">{a.id}</span>
-              <Badge tone="info">{a.title}</Badge>
-              <span className="flex-1" />
-              <span className="text-[10px] text-fg-faint">{new Date(a.at).toLocaleTimeString(APP.locale, { timeZone: APP.timeZone, hour12: false })}</span>
-            </div>
-            <p className="text-[11px] text-fg-muted">On: {a.insightTitle}</p>
-            <p className="text-[11px] text-fg-muted">{Object.entries(a.values).filter(([, v]) => v).map(([k, v]) => `${k}: ${String(v).split('\n')[0]}`).join(' · ')}</p>
-            <p className="text-[10px] text-fg-faint">By {a.by} · {a.status} (prototype: recorded in the console log, not sent to an external system)</p>
+        {toast && (
+          <div className="app-toast app-toast-success absolute top-3 left-4 right-4 z-20" role="status">
+            <p className="app-toast-title"><Icon name="check" size={14} />Action submitted</p>
+            <p className="app-toast-body">{toast}</p>
           </div>
-        )) : <p className="text-center text-sm text-fg-faint py-8">No actions submitted yet. Open an insight and choose an action.</p>)}
+        )}
+
+        {form && (
+          <ActionForm
+            form={form}
+            busy={busy}
+            onChange={(k, v) => setForm((f) => ({ ...f, values: { ...f.values, [k]: v } }))}
+            onSubmit={submit}
+            onCancel={() => setForm(null)}
+          />
+        )}
+
+        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          {tab === 'insights' && all.map((ins) => (
+            <InsightCard key={ins.id} ins={ins} open={expanded === ins.id} onToggle={() => setExpanded(expanded === ins.id ? null : ins.id)} onAction={openForm} onLink={go} />
+          ))}
+          {tab === 'insights' && !all.length && <EmptyState icon="sparkles" title="No insights yet">Advisories appear as the corridor analytics and the live twin find something worth acting on.</EmptyState>}
+          {tab === 'actions' && (actions.length ? actions.map((a) => (
+            <div key={a.id} className="tile space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-fg">{a.id}</span>
+                <Badge tone="info">{a.title}</Badge>
+                <span className="flex-1" />
+                <span className="text-[10px] text-fg-faint">{new Date(a.at).toLocaleTimeString(APP.locale, { timeZone: APP.timeZone, hour12: false })}</span>
+              </div>
+              <p className="text-[11px] text-fg-muted">On: {a.insightTitle}</p>
+              <p className="text-[11px] text-fg-muted">{Object.entries(a.values).filter(([, v]) => v).map(([k, v]) => `${k}: ${String(v).split('\n')[0]}`).join(' · ')}</p>
+              <p className="text-[10px] text-fg-faint">By {a.by} · {a.status} (prototype: recorded in the console log, not sent to an external system)</p>
+            </div>
+          )) : <EmptyState icon="clipboard" title="No actions submitted yet">Open an insight and choose an action to notify a stakeholder, raise a task or schedule a survey.</EmptyState>)}
+        </div>
       </div>
     </aside>
   );

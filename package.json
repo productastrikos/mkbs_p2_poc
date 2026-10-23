@@ -26,6 +26,7 @@
     "dev": "react-scripts start",
     "build": "react-scripts build",
     "serve": "node server/index.js",
+    "serve:api": "node server/api.js",
     "data": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/fetch-osm.mjs && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/build-data.mjs",
     "data:trips": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/generate-trips.mjs",
     "check": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/acceptance.mjs",

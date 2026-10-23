@@ -2,9 +2,12 @@ import {
   Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement,
   BarElement, ArcElement, Tooltip, Legend, Filler,
 } from 'chart.js';
+import { toneToken } from '../../utils';
 
-/* Chart.js setup and theme helpers. Chart elements are registered once
-   here, so pages don't need to register anything. */
+/* Chart.js setup and theme helpers (ASTRIKOS-UI-THEME §10). Chart elements
+   are registered once here, so pages don't need to register anything. */
+
+const FONT = "'Lato', system-ui, -apple-system, sans-serif";
 
 /* Draws horizontal reference lines:
    options.plugins.thresholdLines = { lines: [{ value, color, dash, label }] } */
@@ -29,7 +32,7 @@ const thresholdLinesPlugin = {
       if (label) {
         ctx.setLineDash([]);
         ctx.fillStyle = color;
-        ctx.font = '9px Inter, system-ui, sans-serif';
+        ctx.font = `700 10px ${FONT}`;
         ctx.fillText(label, right + 4, py + 3);
       }
     });
@@ -40,28 +43,35 @@ const thresholdLinesPlugin = {
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend, Filler, thresholdLinesPlugin);
 ChartJS.defaults.interaction.mode = 'index';
 ChartJS.defaults.interaction.intersect = false;
-ChartJS.defaults.font.family = 'Inter, system-ui, sans-serif';
+ChartJS.defaults.font.family = FONT;
 
 /* ─── Reading theme tokens ─────────────────────────────────── */
+// Tokens live on <body data-theme>, so read them from body, not <html>.
 export function cssVar(name) {
-  if (typeof document === 'undefined') return '';
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  if (typeof document === 'undefined' || !document.body) return '';
+  return getComputedStyle(document.body).getPropertyValue(name).trim();
 }
 
-const NAMED = ['primary', 'accent', 'success', 'warning', 'danger', 'info', 'neutral'];
+/* Categorical series order (§10), never shuffled. */
+const SERIES = ['accent', 'teal', 'info', 'warning', 'success', 'danger'];
+export const SERIES_COUNT = SERIES.length;
+
+const NAMED = ['primary', 'accent', 'success', 'warning', 'danger', 'info', 'neutral', 'teal', 'violet'];
 
 /** Resolve 'primary' | 'success' | 'chart-3' | '#hex' to a concrete colour. */
 export function resolveColor(name) {
-  if (!name) return cssVar('--chart-1');
+  if (!name) return cssVar(`--app-${SERIES[0]}`);
   if (name.startsWith('#') || name.startsWith('rgb')) return name;
-  if (NAMED.includes(name)) return cssVar(`--color-${name}`);
-  return cssVar(`--${name}`);
+  if (NAMED.includes(name)) return cssVar(`--app-${name === 'accent' ? 'accent' : toneToken(name)}`);
+  const series = name.match(/^chart-(\d+)$/);
+  if (series) return seriesColor(Number(series[1]) - 1);
+  return cssVar(`--app-${name}`) || cssVar(`--${name}`);
 }
 
-/** Series palette: --chart-1 … --chart-8 from theme.css. */
-export const seriesColor = (i) => cssVar(`--chart-${(i % 8) + 1}`);
+/** Series palette: accent, teal, info, warning, success, danger. */
+export const seriesColor = (i) => cssVar(`--app-${SERIES[i % SERIES.length]}`);
 
-/** '#3b7de8' + 0.15 → 'rgba(59,125,232,0.15)'. Non-hex colours are returned unchanged. */
+/** '#rrggbb' + 0.15 → 'rgba(r, g, b, 0.15)'. Non-hex colours are returned unchanged. */
 export function withAlpha(color, alpha) {
   const hex = color?.replace('#', '');
   if (!hex || !/^[0-9a-f]{3}([0-9a-f]{3})?$/i.test(hex)) return color;
@@ -70,37 +80,66 @@ export function withAlpha(color, alpha) {
   return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
 }
 
+/** Bar fill: the status --app-*-bar tokens, otherwise the colour at 88% alpha. */
+export function barColor(name) {
+  const token = NAMED.includes(name) ? toneToken(name) : null;
+  if (token === 'success' || token === 'warning' || token === 'danger') return cssVar(`--app-${token}-bar`);
+  return withAlpha(resolveColor(name), 0.88);
+}
+
 /* ─── Shared option builders ───────────────────────────────── */
 export function tooltipOptions(extra = {}) {
   return {
-    backgroundColor: cssVar('--chart-tooltip-bg'),
-    borderColor: cssVar('--chart-tooltip-border'),
+    backgroundColor: cssVar('--app-chart-tooltip-bg'),
+    borderColor: cssVar('--app-chart-tooltip-border'),
     borderWidth: 1,
-    titleColor: cssVar('--color-text'),
-    bodyColor: cssVar('--color-text-muted'),
-    padding: 8,
+    cornerRadius: 8,
+    titleColor: cssVar('--app-text'),
+    bodyColor: cssVar('--app-text-muted'),
+    titleFont: { family: FONT, size: 11, weight: 700 },
+    bodyFont: { family: FONT, size: 11 },
+    padding: { x: 10, y: 8 },
+    boxWidth: 8,
+    boxHeight: 8,
+    boxPadding: 4,
     ...extra,
   };
 }
+
+/* Solid 8px swatches: a line series shows its line colour, not its 12% area fill. */
+const solidSwatches = (chart) => ChartJS.defaults.plugins.legend.labels.generateLabels(chart).map((l) => {
+  const ds = chart.data.datasets[l.datasetIndex];
+  const line = (ds?.type || chart.config.type) === 'line';
+  return { ...l, fillStyle: line ? ds.borderColor : l.fillStyle, strokeStyle: 'transparent', lineWidth: 0 };
+});
 
 export function legendOptions(show, position = 'top') {
   if (!show) return { display: false };
   return {
     display: true,
     position,
-    labels: { color: cssVar('--color-text-muted'), font: { size: 10 }, boxWidth: 8, usePointStyle: true, padding: 10 },
+    align: position === 'top' ? 'end' : 'center',
+    labels: {
+      color: cssVar('--app-text-muted'), font: { family: FONT, size: 10 },
+      boxWidth: 8, boxHeight: 8, useBorderRadius: true, borderRadius: 2, padding: 12,
+      // Doughnuts keep their per-slice labels from the doughnut controller.
+      ...(position === 'top' ? { generateLabels: solidSwatches } : {}),
+    },
   };
 }
 
-export function axisOptions({ yMax, yLabel, stacked = false, grid = false } = {}) {
-  const tick = { color: cssVar('--chart-tick'), font: { size: 9 } };
-  const gridCfg = grid ? { color: cssVar('--chart-grid') } : { display: false };
+/* Horizontal grid only; axis labels 10px Lato in --app-text-faint. */
+export function axisOptions({ yMax, yLabel, stacked = false, grid = true } = {}) {
+  const tick = { color: cssVar('--app-text-faint'), font: { family: FONT, size: 10 } };
+  const border = { color: cssVar('--app-border') };
   return {
-    x: { stacked, grid: { display: false }, ticks: tick },
+    x: { stacked, grid: { display: false }, border, ticks: tick },
     y: {
-      stacked, grid: gridCfg, ticks: tick, beginAtZero: true,
+      stacked, beginAtZero: true, ticks: tick,
+      grid: grid ? { color: cssVar('--app-chart-grid'), lineWidth: 1 } : { display: false },
+      border: { display: false },
       ...(yMax != null ? { max: yMax } : {}),
-      ...(yLabel ? { title: { display: true, text: yLabel, color: cssVar('--chart-tick'), font: { size: 9 } } } : {}),
+      ...(yLabel ? { title: { display: true, text: yLabel, color: cssVar('--app-text-faint'), font: { family: FONT, size: 10 } } } : {}),
     },
   };
 }

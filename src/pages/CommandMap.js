@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { MapContainer, Marker, Polyline, Popup, Tooltip, useMap } from 'react-leaflet';
-import { Card, Button, Badge, Tabs, Icon, ProgressBar, IconButton, FilterChips } from '../components/ui';
+import { Card, Button, Badge, Tabs, Icon, ProgressBar, IconButton, FilterChips, PageHeader, EmptyState } from '../components/ui';
+import { toneColor, toneBg } from '../utils';
 import { useData, useSim } from '../data/DataProvider';
 import { useTheme } from '../theme/ThemeProvider';
 import BaseTiles from '../components/evp/BaseTiles';
@@ -60,7 +61,7 @@ function approachLabel(n) {
   if (n.request === 'GREEN') return `${moveGlyph(n.top)} GREEN · held`;
   if (n.request === 'SENT') return `${moveGlyph(n.top)} ${p} · green in ${Math.round(n.greenIn ?? 0)} s`;
   if (n.request === 'YIELDING') return `${moveGlyph(n.top)} yielding to ${n.yieldTo || '…'}`;
-  if (n.request === 'BLOCKED') return '⛔ request blocked';
+  if (n.request === 'BLOCKED') return 'Request blocked';
   return `${moveGlyph(n.top)} ${p} · ETA ${Math.round(n.eta ?? 0)} s`;
 }
 
@@ -78,7 +79,7 @@ function NextJunction({ n, suspended }) {
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="label-caps">Next junction · {Math.round(n.dist)} m</p>
-          <Link to={`/junctions/${n.j}`} className="text-[13px] font-semibold text-fg hover:underline block truncate">{n.j} {n.name}</Link>
+          <Link to={`/junctions/${n.j}`} className="text-[13px] font-bold text-fg hover:underline block truncate">{n.j} {n.name}</Link>
         </div>
         <SignalHead state={n.signal} size={9} />
       </div>
@@ -124,12 +125,12 @@ function CctvPip({ pip, snap, data, onPip, onClose, onWall }) {
   const title = pip.vehicle ? `${pip.vehicle} · next camera${cam ? `: ${cam.id}` : ''}`
     : grid ? `${junction.id} · ${junction.name}` : cam?.id;
   return (
-    <div className={`cctv-pip ${grid ? 'cctv-pip-wide' : ''} card p-2 space-y-1.5`} style={{ background: 'var(--color-surface)' }}>
+    <div className={`cctv-pip ${grid ? 'cctv-pip-wide' : ''} card p-2.5 space-y-2`}>
       <div className="flex items-center gap-2">
         <Icon name="video" size={14} className="text-fg-faint shrink-0" />
-        <span className="text-xs font-semibold text-fg truncate flex-1" title={title}>{title}</span>
-        {pip.cam && junction && <button type="button" className="link-btn whitespace-nowrap" onClick={() => onPip({ junction: junction.id })}>ALL {junction.id} CAMERAS</button>}
-        {(cam || grid) && <button type="button" className="link-btn whitespace-nowrap" onClick={() => onWall(cam ? `cam=${cam.id}` : `j=${junction.id}`)}>OPEN WALL</button>}
+        <span className="text-xs font-bold text-fg truncate flex-1" title={title}>{title}</span>
+        {pip.cam && junction && <button type="button" className="link-btn whitespace-nowrap" onClick={() => onPip({ junction: junction.id })}>All {junction.id} cameras</button>}
+        {(cam || grid) && <button type="button" className="link-btn whitespace-nowrap" onClick={() => onWall(cam ? `cam=${cam.id}` : `j=${junction.id}`)}>Open wall</button>}
         <IconButton icon="close" label="Close cameras" plain onClick={onClose} />
       </div>
       {grid ? (
@@ -148,7 +149,7 @@ function TripCard({ trip, engine, follow, onFollow, onCctv }) {
   const progress = ((trip.d - (trip.startOffset || 0)) / Math.max(1, trip.length - (trip.startOffset || 0))) * 100;
   useEffect(() => { if (!confirmEnd) return undefined; const t = setTimeout(() => setConfirmEnd(false), 4000); return () => clearTimeout(t); }, [confirmEnd]);
   return (
-    <div className="card p-3 space-y-2.5" style={{ borderColor: follow ? 'var(--color-primary-border)' : undefined }}>
+    <div className="card p-4 space-y-3" style={{ borderColor: follow ? 'var(--app-accent-border)' : undefined }}>
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm font-bold text-fg">{trip.vehicleId}</span>
         <PriorityBadge priority={trip.priority} />
@@ -169,7 +170,7 @@ function TripCard({ trip, engine, follow, onFollow, onCctv }) {
         {trip.crossings.map((c) => (
           <Link key={`${c.j}-${Math.round(c.dStop)}`} to={`/junctions/${c.j}`} title={`${c.j}: ${c.passed ? (c.wait < 1 ? 'passed without stopping' : `passed after ${Math.round(c.wait)} s wait`) : REQUEST_LABEL[c.request] || 'ahead'}`}>
             <Badge tone={c.passed ? (c.wait < 1 ? 'success' : 'warning') : c.request === 'GREEN' ? 'success' : c.request === 'SENT' ? 'primary' : c.request === 'YIELDING' ? 'warning' : c.request === 'BLOCKED' ? 'danger' : 'neutral'}>
-              {c.passed ? '✓ ' : ''}{c.j}
+              {c.passed && <Icon name="check" size={10} strokeWidth={2.4} />}{c.j}
             </Badge>
           </Link>
         ))}
@@ -189,8 +190,8 @@ function TripCard({ trip, engine, follow, onFollow, onCctv }) {
 function SimControls({ snap, sim, engine }) {
   return (
     <div className="flex items-center gap-2 flex-wrap">
-      <span className="font-mono text-xs px-2 py-1 rounded-md border bg-surface-raised text-fg" title="Digital-twin clock (Kuching time). Runs with the simulation speed, so it moves ahead of the wall clock at 2× and above.">
-        Twin {fmtTime(snap.now)}{snap.speed > 1 && !snap.paused ? ` · ${snap.speed}×` : ''}{snap.paused ? ' · paused' : ''}
+      <span className="app-readout" title="Digital-twin clock (Kuching time). Runs with the simulation speed, so it moves ahead of the wall clock at 2× and above.">
+        Twin <b>{fmtTime(snap.now)}</b>{snap.speed > 1 && !snap.paused ? ` · ${snap.speed}×` : ''}{snap.paused ? ' · paused' : ''}
       </span>
       <IconButton icon={snap.paused ? 'play' : 'pause'} label={snap.paused ? 'Resume simulation' : 'Pause simulation'} onClick={() => sim.togglePause()} />
       <div className="timeframe" role="group" aria-label="Simulation speed">
@@ -207,7 +208,7 @@ function SimControls({ snap, sim, engine }) {
   );
 }
 
-const LEVEL_DOT = { info: 'var(--color-info)', success: 'var(--color-success)', warning: 'var(--color-warning)', danger: 'var(--color-danger)' };
+const LEVEL_DOT = { info: toneColor('info'), success: toneColor('success'), warning: toneColor('warning'), danger: toneColor('danger') };
 const EVENT_FILTERS = [
   { value: 'all', label: 'All' },
   { value: 'evp', label: 'EVP & signals' },
@@ -307,25 +308,23 @@ export default function CommandMap() {
   ];
 
   return (
-    <div className="flex flex-col gap-3" style={{ minHeight: 'calc(100vh - var(--header-height) - 40px)' }}>
-      <div className="flex items-start justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="page-title">Live Command Map</h1>
-          <p className="page-subtitle">Kuching South digital twin · {data.junctions.length} SCATS junctions · {data.ambulances.length} ambulances · simulated traffic on real roads</p>
-        </div>
-        <SimControls snap={snap} sim={sim} engine={engine} />
-      </div>
+    <div className="flex flex-col gap-4" style={{ minHeight: 'calc(100vh - var(--app-header-h) - 48px)' }}>
+      <PageHeader
+        title="Live Command Map"
+        subtitle={`Kuching South digital twin · ${data.junctions.length} SCATS junctions · ${data.ambulances.length} ambulances · simulated traffic on real roads`}
+        actions={<SimControls snap={snap} sim={sim} engine={engine} />}
+      />
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 -mt-1">
         {stats.map((s) => (
-          <button key={s.label} type="button" onClick={s.onClick} title={s.title} className="card card-hoverable px-3 py-2 flex items-center gap-2.5 text-left">
-            <span className="stat-card-icon" style={{ width: 28, height: 28, ...(s.tone ? { background: `var(--color-${s.tone}-soft)`, color: `var(--color-${s.tone})` } : {}) }}><Icon name={s.icon} size={15} /></span>
-            <span className="min-w-0"><span className="block text-lg font-bold text-fg leading-none">{s.value}</span><span className="block text-[10px] text-fg-faint truncate mt-0.5">{s.label}</span></span>
+          <button key={s.label} type="button" onClick={s.onClick} title={s.title} className="card px-3 py-2.5 flex items-center gap-2.5">
+            <span className="stat-card-icon" style={{ width: 28, height: 28, ...(s.tone ? { background: toneBg(s.tone), color: toneColor(s.tone) } : {}) }}><Icon name={s.icon} size={15} /></span>
+            <span className="min-w-0"><span className="block font-display text-lg font-bold text-fg leading-none">{s.value}</span><span className="block text-[10px] text-fg-faint truncate mt-1">{s.label}</span></span>
           </button>
         ))}
       </div>
 
-      <div className="flex-1 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_400px] gap-3 min-h-0">
+      <div className="flex-1 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_400px] gap-4 min-h-0">
         <div className="card overflow-hidden relative isolate" style={{ minHeight: 520 }}>
           <MapContainer center={CENTER} zoom={14} style={{ height: '100%', width: '100%', minHeight: 520 }} preferCanvas={false}>
             <BaseTiles theme={theme} />
@@ -347,9 +346,9 @@ export default function CommandMap() {
                       <p className="text-[11px]">{MODE_LABEL[st?.mode]}{st?.grant ? ` for ${st.grant.vehicleId} (${st.grant.priority})` : ''} · phase {st?.phaseId} {STAGE_LABEL[st?.stage]} · {Math.round(st?.stageRemaining ?? 0)} s left</p>
                       <p className="text-[11px]">Queue {q} veh (normal ≈ {st?.normalQueue ?? '–'}) · congestion {st?.congestion?.toFixed(2)}</p>
                       {approaching[j.id] && <p className="text-[11px]"><b>{approaching[j.id].vehicle}</b> approaching: {approaching[j.id].label}</p>}
-                      <div className="flex gap-3 flex-wrap">
-                        <button type="button" className="link-btn" onClick={() => navigate(`/junctions/${j.id}`)}>OPEN JUNCTION DETAIL</button>
-                        {data.camerasByJ.get(j.id)?.length > 0 && <button type="button" className="link-btn" onClick={() => setPip({ junction: j.id })}>CAMERAS ({data.camerasByJ.get(j.id).length})</button>}
+                      <div className="flex gap-3 flex-wrap pt-1">
+                        <button type="button" className="link-btn" onClick={() => navigate(`/junctions/${j.id}`)}>Open junction detail</button>
+                        {data.camerasByJ.get(j.id)?.length > 0 && <button type="button" className="link-btn" onClick={() => setPip({ junction: j.id })}>Cameras ({data.camerasByJ.get(j.id).length})</button>}
                       </div>
                     </div>
                   </Popup>
@@ -383,8 +382,8 @@ export default function CommandMap() {
                         <p className="text-[11px]">{v.operator} · {v.plate}</p>
                         <p className="text-[11px]">{v.quarantined ? 'Quarantined: EVP suspended' : UNIT_STATUS[v.status]?.label}{v.driveTo ? ` to ${v.driveTo}` : ''} · {v.location}</p>
                         <div className="flex gap-3 pt-1">
-                          <button type="button" className="link-btn" onClick={() => navigate(`/tablet?vehicle=${v.id}`)}>OPEN ON TABLET</button>
-                          {v.quarantined && <button type="button" className="link-btn" onClick={() => navigate('/security')}>REVIEW</button>}
+                          <button type="button" className="link-btn" onClick={() => navigate(`/tablet?vehicle=${v.id}`)}>Open on tablet</button>
+                          {v.quarantined && <button type="button" className="link-btn" onClick={() => navigate('/security')}>Review alert</button>}
                         </div>
                       </div>
                     </Popup>
@@ -401,27 +400,27 @@ export default function CommandMap() {
             <FlyTo target={fly} />
           </MapContainer>
           {pip && <CctvPip pip={pip} snap={snap} data={data} onPip={setPip} onClose={() => setPip(null)} onWall={(q) => navigate(`/cctv?${q}`)} />}
-          <div className="absolute left-3 bottom-3 z-[500] card px-3 py-2 text-[10.5px] text-fg-muted space-y-1" style={{ background: 'var(--color-surface)' }}>
-            <p className="label-caps">Legend</p>
-            <p className="flex items-center gap-2"><span className="inline-flex gap-0.5">{['var(--signal-green)', 'var(--signal-amber)', 'var(--signal-red)'].map((c) => <span key={c} className="w-2 h-2 rounded-full" style={{ background: c }} />)}</span>Approach signal (green / amber / red)</p>
-            <p className="flex items-center gap-2"><span className="w-3 h-3 rounded-full border-2" style={{ borderColor: 'var(--color-primary)' }} />Pre-empting · <span className="w-3 h-3 rounded-full border-2 border-dashed" style={{ borderColor: 'var(--color-warning)' }} />Recovery</p>
-            <p className="flex items-center gap-2"><span className="inline-flex gap-0.5">{['var(--color-danger)', 'var(--color-warning)', 'var(--color-info)'].map((c) => <span key={c} className="w-2.5 h-2.5 rounded-full" style={{ background: c }} />)}</span>EVP trip: Critical / Urgent / Non-urgent</p>
-            <p className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full" style={{ background: 'var(--color-neutral)' }} />Returning to base (no EVP) · <span className="amb-idle inline-block" />free / on scene</p>
-            <p className="flex items-center gap-2"><span style={{ color: 'var(--color-accent)' }}>➜</span>Predicted movement + probability</p>
+          <div className="absolute left-3 bottom-3 z-[500] card px-3 py-2.5 text-[10.5px] text-fg-muted space-y-1">
+            <p className="label-caps mb-1">Legend</p>
+            <p className="flex items-center gap-2"><span className="inline-flex gap-0.5">{['success', 'warning', 'danger'].map((t) => <span key={t} className="w-2 h-2 rounded-full" style={{ background: toneColor(t) }} />)}</span>Approach signal (green / amber / red)</p>
+            <p className="flex items-center gap-2"><span className="w-3 h-3 rounded-full border-2" style={{ borderColor: toneColor('primary') }} />Pre-empting · <span className="w-3 h-3 rounded-full border-2 border-dashed" style={{ borderColor: toneColor('warning') }} />Recovery</p>
+            <p className="flex items-center gap-2"><span className="inline-flex gap-0.5">{['danger', 'warning', 'info'].map((t) => <span key={t} className="w-2.5 h-2.5 rounded-full" style={{ background: toneColor(t) }} />)}</span>EVP trip: Critical / Urgent / Non-urgent</p>
+            <p className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full" style={{ background: toneColor('neutral') }} />Returning to base (no EVP) · <span className="amb-idle inline-block" />free / on scene</p>
+            <p className="flex items-center gap-2"><Icon name="arrowRight" size={12} style={{ color: toneColor('primary') }} />Predicted movement + probability</p>
             <p className="flex items-center gap-2"><Icon name="video" size={12} />Click a junction for its approach cameras</p>
             <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={showIdle} onChange={(e) => setShowIdle(e.target.checked)} />Show units not on the move</label>
           </div>
         </div>
 
         <Card padded={false} className="flex flex-col min-h-[520px]">
-          <div className="px-3 pt-3">
+          <div className="px-4 pt-4">
             <Tabs tabs={[{ value: 'live', label: `Live (${snap.trips.length})` }, { value: 'fleet', label: 'Fleet' }, { value: 'scenarios', label: 'Scenarios' }, { value: 'events', label: 'Event log' }]} value={tab} onChange={setTab} size="sm" />
           </div>
-          <div className="flex-1 overflow-y-auto p-3 space-y-3" style={{ maxHeight: 'calc(100vh - 260px)' }}>
+          <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{ maxHeight: 'calc(100vh - 260px)' }}>
             {result && (
-              <div className={`tile text-xs ${result.ok ? 'tone-success' : 'tone-danger'} flex gap-2`}>
+              <div className={`tile text-xs ${result.ok ? 'tone-success' : 'tone-danger'} flex gap-2`} role="status">
                 <span className="flex-1">{result.message}</span>
-                <button type="button" className="link-btn" onClick={() => setResult(null)}>DISMISS</button>
+                <button type="button" className="link-btn" onClick={() => setResult(null)}>Dismiss</button>
               </div>
             )}
             {tab === 'live' && (
@@ -429,12 +428,9 @@ export default function CommandMap() {
                 <TripCard key={t.id} trip={t} engine={engine} follow={follow === t.vehicleId} onFollow={() => setFollow(follow === t.vehicleId ? null : t.vehicleId)}
                   onCctv={t.crossings.some((c) => !c.passed && data.camerasByJ.get(c.j)?.length) ? () => setPip({ vehicle: t.vehicleId }) : null} />
               )) : (
-                <div className="text-center py-10 space-y-3">
-                  <Icon name="ambulance" size={28} className="mx-auto text-fg-faint" />
-                  <p className="text-sm text-fg-muted">No ambulance on an EVP trip right now.</p>
-                  <p className="text-xs text-fg-faint">{snap.ambient ? `Live dispatch is on: at this hour an emergency call comes in about every ${Math.round(60 / Math.max(0.5, snap.ops?.ratePerHour || 1))} min. ` : ''}Press START on the <Link className="text-primary underline" to="/tablet">ambulance tablet</Link>, or run a scenario.</p>
-                  <Button icon="play" onClick={() => run('sgh')}>Run SGH demo</Button>
-                </div>
+                <EmptyState icon="ambulance" title="No ambulance on an EVP trip" action={<Button icon="play" onClick={() => run('sgh')}>Run SGH demo</Button>}>
+                  {snap.ambient ? `Live dispatch is on: at this hour an emergency call comes in about every ${Math.round(60 / Math.max(0.5, snap.ops?.ratePerHour || 1))} min. ` : ''}Press Start on the <Link className="link-btn" to="/tablet">ambulance tablet</Link>, or run a scenario.
+                </EmptyState>
               )
             )}
             {tab === 'fleet' && <FleetList snap={snap} onLocate={locate} />}
@@ -444,7 +440,7 @@ export default function CommandMap() {
                 {SCENARIOS.map((s) => (
                   <button key={s.id} type="button" className="w-full text-left tile hover:border-primary transition-colors flex items-center gap-3" onClick={() => run(s.id)}>
                     <span className="stat-card-icon" style={{ width: 30, height: 30 }}><Icon name={s.icon} size={16} /></span>
-                    <span className="flex-1 min-w-0"><span className="block text-[13px] font-semibold text-fg">{s.label}</span><span className="block text-[11px] text-fg-faint">{s.description}</span></span>
+                    <span className="flex-1 min-w-0"><span className="block text-[13px] font-bold text-fg">{s.label}</span><span className="block text-[11px] text-fg-faint">{s.description}</span></span>
                     <Icon name="chevronRight" size={14} className="text-fg-faint" />
                   </button>
                 ))}
@@ -456,7 +452,7 @@ export default function CommandMap() {
                 <FilterChips options={EVENT_FILTERS} value={eventFilter} onChange={setEventFilter} />
                 <ul className="space-y-2">
                   {events.map((e) => (
-                    <li key={e.id} className="flex gap-2 text-[11.5px]">
+                    <li key={e.id} className="flex gap-2 text-xs">
                       <span className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ background: LEVEL_DOT[e.level] }} />
                       <span className="font-mono text-[10.5px] text-fg-faint shrink-0 tabular-nums" title="Twin time">{fmtTime(e.time)}</span>
                       <span className="text-fg-muted leading-snug">

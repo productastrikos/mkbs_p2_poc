@@ -3,14 +3,26 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="GreenLight EVP: AI-assisted emergency vehicle pre-emption for Majlis Bandaraya Kuching Selatan" />
-  <link rel="icon" type="image/svg+xml" href="%PUBLIC_URL%/favicon.svg" />
+  <meta name="description" content="GreenLight EVP: AI-assisted emergency vehicle pre-emption for Majlis Bandaraya Kuching Selatan (Kuching South City Council)" />
+  <meta name="application-name" content="GreenLight EVP · MBKS" />
+  <link rel="icon" type="image/png" sizes="32x32" href="%PUBLIC_URL%/brand/mbks-seal-32.png" />
+  <link rel="icon" type="image/svg+xml" href="%PUBLIC_URL%/brand/mbks-seal.svg" />
+  <link rel="apple-touch-icon" href="%PUBLIC_URL%/brand/apple-touch-icon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@300;400;500;600;700&family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,400&display=swap" rel="stylesheet" />
   <title>GreenLight EVP · MBKS</title>
 </head>
-<body>
+<body data-theme="dark">
+  <!-- Apply the saved theme before first paint (see src/theme/ThemeProvider.js). -->
+  <script>
+    (function () {
+      var saved = null;
+      try { saved = localStorage.getItem('astrikos-theme'); } catch (e) {}
+      var light = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+      document.body.setAttribute('data-theme', saved === 'light' || saved === 'dark' ? saved : light ? 'light' : 'dark');
+    })();
+  </script>
   <noscript>You need to enable JavaScript to run this app.</noscript>
   <div id="root"></div>
 </body>

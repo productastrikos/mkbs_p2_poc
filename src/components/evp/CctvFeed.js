@@ -12,7 +12,9 @@ export const cctvUrl = (path) => `${BASE}/${path}`;
 /** Where a camera's stand-in clip was filmed, for captions. */
 export const filmedIn = (cam) => (cam.footage?.place ? `filmed in ${cam.footage.place}` : 'filming location not stated');
 
-const LAMP = { G: '#22c55e', A: '#f59e0b', R: '#ef4444' };
+// Lamp colours: the status tokens (pinned to the dark set inside the OSD layer).
+const LAMP = { G: 'var(--app-success)', A: 'var(--app-warning)', R: 'var(--app-danger)' };
+const LAMP_HALO = { G: 'var(--app-success-bg)', A: 'var(--app-warning-bg)', R: 'var(--app-danger-bg)' };
 const LAMP_WORD = { G: 'GREEN', A: 'AMBER', R: 'RED' };
 const PREEMPT_TAG = {
   WAIT_SAFE: ['cctv-tag-req', 'EVP REQUEST · WAITING SAFE SWITCH'],
@@ -118,41 +120,44 @@ const CctvFeed = forwardRef(function CctvFeed({ camera, junction, snap, size = '
       <video ref={videoRef} src={cctvUrl(camera.src)} poster={cctvUrl(camera.poster)} muted loop playsInline preload="metadata"
         onLoadedMetadata={(e) => { const v = e.currentTarget; if (Number.isFinite(v.duration)) v.currentTime = v.duration * startFraction(camera.id); }}
         onPlaying={() => setState('playing')} onError={() => setState('error')} />
-      {state === 'error' && (
-        <div className="cctv-nosignal"><span>NO SIGNAL</span><span className="text-[10px] tracking-normal">{camera.id} · video could not be loaded</span></div>
-      )}
-      <div className="cctv-shade-top" />
-      <div className="cctv-shade-bottom" />
+      {/* Overlay layer: a camera picture has no theme, so it keeps the dark-ground tokens. */}
+      <div className="contents astk-fixed-dark">
+        {state === 'error' && (
+          <div className="cctv-nosignal"><span>NO SIGNAL</span><span className="text-[10px] tracking-normal">{camera.id} · video could not be loaded</span></div>
+        )}
+        <div className="cctv-shade-top" />
+        <div className="cctv-shade-bottom" />
 
-      <div className="cctv-osd" style={{ left: xs ? 6 : 8, top: xs ? 4 : 6, right: xs ? '38%' : '42%' }}>
-        <div className="truncate"><span className="cctv-rec" />{camera.id}{camera.type === 'PTZ' ? ' · PTZ' : ''}</div>
-        {!xs && <div className="truncate opacity-90">{junction ? `${junction.id} ${junction.name}`.toUpperCase() : camera.junctionId}</div>}
-      </div>
-      <div className="cctv-osd text-right" style={{ right: xs ? 6 : 8, top: xs ? 4 : 6 }}>
-        <div className="tabular-nums">{snap ? (xs ? fmtStamp(snap.now).split(' ')[1] : fmtStamp(snap.now)) : '--:--:--'}</div>
-        <div className="flex gap-1 justify-end mt-0.5">
-          {night && <span className="cctv-tag cctv-tag-dim">IR</span>}
-          {rain && <span className="cctv-tag cctv-tag-dim">RAIN</span>}
-          {!xs && <span className="cctv-tag cctv-tag-dim">STAND-IN</span>}
+        <div className="cctv-osd" style={{ left: xs ? 6 : 8, top: xs ? 4 : 6, right: xs ? '38%' : '42%' }}>
+          <div className="truncate"><span className="cctv-rec" />{camera.id}{camera.type === 'PTZ' ? ' · PTZ' : ''}</div>
+          {!xs && <div className="truncate opacity-90">{junction ? `${junction.id} ${junction.name}`.toUpperCase() : camera.junctionId}</div>}
         </div>
-      </div>
+        <div className="cctv-osd text-right" style={{ right: xs ? 6 : 8, top: xs ? 4 : 6 }}>
+          <div className="tabular-nums">{snap ? (xs ? fmtStamp(snap.now).split(' ')[1] : fmtStamp(snap.now)) : '--:--:--'}</div>
+          <div className="flex gap-1 justify-end mt-0.5">
+            {night && <span className="cctv-tag cctv-tag-dim">IR</span>}
+            {rain && <span className="cctv-tag cctv-tag-dim">RAIN</span>}
+            {!xs && <span className="cctv-tag cctv-tag-dim">STAND-IN</span>}
+          </div>
+        </div>
 
-      {lines.length > 0 && (
-        <div className="cctv-osd space-y-1" style={{ left: xs ? 6 : 8, top: lg ? 52 : xs ? 22 : 40, right: xs ? 6 : 8 }}>
-          {lines.slice(0, lg ? 3 : xs ? 1 : 2).map((l) => <div key={l.text}><span className={`cctv-tag ${l.cls}`}>{l.text}</span></div>)}
-        </div>
-      )}
+        {lines.length > 0 && (
+          <div className="cctv-osd space-y-1" style={{ left: xs ? 6 : 8, top: lg ? 52 : xs ? 22 : 40, right: xs ? 6 : 8 }}>
+            {lines.slice(0, lg ? 3 : xs ? 1 : 2).map((l) => <div key={l.text}><span className={`cctv-tag ${l.cls}`}>{l.text}</span></div>)}
+          </div>
+        )}
 
-      <div className="cctv-osd" style={{ left: xs ? 6 : 8, bottom: xs ? 4 : 6, right: '45%' }}>
-        <div className="truncate">{xs ? (arm?.road || `${camera.arm} approach`).toUpperCase() : `VIEW ${camera.arm}${arm?.road ? ` · ${arm.road.toUpperCase()}` : ''}`}</div>
-        {lg && <div className="truncate opacity-80 text-[11px] font-medium">Stand-in footage · {where}</div>}
-      </div>
-      <div className="cctv-osd text-right" style={{ right: xs ? 6 : 8, bottom: xs ? 4 : 6 }}>
-        <div className="flex items-center gap-1.5 justify-end">
-          <span className="inline-block rounded-full" style={{ width: lg ? 10 : 8, height: lg ? 10 : 8, background: LAMP[armState], boxShadow: `0 0 6px ${LAMP[armState]}` }} />
-          <span>{xs ? LAMP_WORD[armState] : `${camera.arm} ${LAMP_WORD[armState]}`}{st ? ` · Q ${Math.round(st.queues?.[camera.arm] ?? 0)}` : ''}</span>
+        <div className="cctv-osd" style={{ left: xs ? 6 : 8, bottom: xs ? 4 : 6, right: '45%' }}>
+          <div className="truncate">{xs ? (arm?.road || `${camera.arm} approach`).toUpperCase() : `VIEW ${camera.arm}${arm?.road ? ` · ${arm.road.toUpperCase()}` : ''}`}</div>
+          {lg && <div className="truncate opacity-80 text-[11px] font-medium">Stand-in footage · {where}</div>}
         </div>
-        {!xs && st?.ped && st.ped !== 'DONT_WALK' && <div>PED {st.ped === 'WALK' ? 'WALK' : 'CLEARING'}</div>}
+        <div className="cctv-osd text-right" style={{ right: xs ? 6 : 8, bottom: xs ? 4 : 6 }}>
+          <div className="flex items-center gap-1.5 justify-end">
+            <span className="cctv-lamp" style={{ width: lg ? 10 : 8, height: lg ? 10 : 8, background: LAMP[armState], boxShadow: `0 0 0 2px ${LAMP_HALO[armState]}` }} />
+            <span>{xs ? LAMP_WORD[armState] : `${camera.arm} ${LAMP_WORD[armState]}`}{st ? ` · Q ${Math.round(st.queues?.[camera.arm] ?? 0)}` : ''}</span>
+          </div>
+          {!xs && st?.ped && st.ped !== 'DONT_WALK' && <div>PED {st.ped === 'WALK' ? 'WALK' : 'CLEARING'}</div>}
+        </div>
       </div>
     </Tag>
   );
@@ -188,10 +193,12 @@ export function saveSnapshot(video, cam, junction, snap) {
     ...lines.map((l) => l.text),
     `Stand-in footage, ${filmedIn(cam)}`,
   ];
-  ctx.font = '600 15px Consolas, ui-monospace, monospace';
+  ctx.font = '600 15px "JetBrains Mono", Consolas, ui-monospace, monospace';
+  // Burned into the exported PNG like a camera OSD: fixed dark plate, white text
+  // (an exported image has no theme, so these are not theme tokens).
   ctx.fillStyle = 'rgba(0,0,0,0.55)';
   ctx.fillRect(0, 0, c.width, 14 + text.length * 20);
-  ctx.fillStyle = '#fff';
+  ctx.fillStyle = 'white';
   text.forEach((t, i) => ctx.fillText(t, 10, 22 + i * 20));
   const [d = '', t = ''] = snap ? fmtStamp(snap.now).split(' ') : [];
   const stamp = snap ? `${d.split('/').reverse().join('')}-${t.replace(/:/g, '')}` : 'now';

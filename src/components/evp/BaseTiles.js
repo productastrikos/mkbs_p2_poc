@@ -2,7 +2,7 @@ import React from 'react';
 import { TileLayer } from 'react-leaflet';
 
 /* OpenStreetMap standard tiles. In dark mode the tile layer is inverted with
-   a CSS filter (.tiles-dark in components.css) so it sits on the navy UI. */
+   a CSS filter (.tiles-dark in theme.css) so it sits on the graphite UI. */
 export const OSM_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
 export default function BaseTiles({ theme }) {

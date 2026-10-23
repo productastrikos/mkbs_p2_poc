@@ -1,29 +1,35 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 
-const STORAGE_KEY = 'app_theme';
+/* Theme switching per ASTRIKOS-UI-THEME §5.7: data-theme lives on <body>,
+   the preference persists under 'astrikos-theme', and dark is the default.
+   public/index.html runs the same logic inline before first paint. */
+const KEY = 'astrikos-theme';
 const ThemeContext = createContext({ theme: 'dark', toggleTheme: () => {} });
 
-function initialTheme() {
-  let theme = window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved === 'light' || saved === 'dark') theme = saved;
-  } catch (e) { /* storage unavailable */ }
-  // Applied before the first render so charts read the right colours.
-  document.documentElement.dataset.theme = theme;
-  return theme;
+export function applyTheme(mode /* 'dark' | 'light' */) {
+  document.body.setAttribute('data-theme', mode);
+  try { localStorage.setItem(KEY, mode); } catch (e) { /* storage unavailable */ }
 }
 
-// Sets data-theme on <html>; the variables in theme.css switch on that attribute.
+export function initTheme() {
+  let saved = null;
+  try { saved = localStorage.getItem(KEY); } catch (e) { /* storage unavailable */ }
+  const prefersLight = window.matchMedia?.('(prefers-color-scheme: light)').matches;
+  const mode = saved === 'light' || saved === 'dark' ? saved : prefersLight ? 'light' : 'dark';
+  applyTheme(mode);
+  return mode;
+}
+
 export function ThemeProvider({ children }) {
-  const [theme, setTheme] = useState(initialTheme);
+  const [theme, setTheme] = useState(initTheme);
 
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    try { localStorage.setItem(STORAGE_KEY, theme); } catch (e) { /* storage unavailable */ }
-  }, [theme]);
-
-  const toggleTheme = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
+  // The attribute changes before React re-renders, so charts and map lines
+  // that read CSS variables during render pick up the new theme.
+  const toggleTheme = () => {
+    const next = document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    applyTheme(next);
+    setTheme(next);
+  };
 
   return <ThemeContext.Provider value={{ theme, toggleTheme }}>{children}</ThemeContext.Provider>;
 }

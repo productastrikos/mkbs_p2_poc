@@ -3,9 +3,10 @@ import { Line, Bar, Doughnut } from 'react-chartjs-2';
 import { useTheme } from '../../theme/ThemeProvider';
 import { Card, IconButton, Drawer } from '../ui';
 import {
-  resolveColor, seriesColor, withAlpha, tooltipOptions, legendOptions, axisOptions,
-  timeframeLabels, timeframePoints, resample,
+  resolveColor, seriesColor, withAlpha, barColor, tooltipOptions, legendOptions, axisOptions,
+  timeframeLabels, timeframePoints, resample, SERIES_COUNT,
 } from './chartTheme';
+import { toneColor } from '../../utils';
 
 const CHARTS = { line: Line, bar: Bar, doughnut: Doughnut };
 
@@ -26,7 +27,8 @@ export function TimeframeToggle({ options, value, onChange }) {
 
 /* Applies theme colours to plain datasets. A dataset may set
    `color`: a token name ('primary', 'success', 'chart-3') or a hex value,
-   or an array of them for per-bar colours. */
+   or an array of them for per-bar colours. Lines are 2px with a 12% area
+   fill; bars use the --app-*-bar alphas (§10). */
 function styleDatasets(type, datasets) {
   return datasets.map((ds, i) => {
     const { color, ...rest } = ds;
@@ -35,12 +37,12 @@ function styleDatasets(type, datasets) {
       return { borderWidth: 0, hoverOffset: 4, ...rest, backgroundColor: colors };
     }
     if (type === 'bar') {
-      const bg = Array.isArray(color) ? color.map(resolveColor) : resolveColor(color || `chart-${(i % 8) + 1}`);
-      return { borderRadius: 4, maxBarThickness: 36, ...rest, backgroundColor: bg };
+      const bg = Array.isArray(color) ? color.map(barColor) : barColor(color || `chart-${(i % SERIES_COUNT) + 1}`);
+      return { borderRadius: 6, maxBarThickness: 36, ...rest, backgroundColor: bg };
     }
-    const c = resolveColor(color || `chart-${(i % 8) + 1}`);
+    const c = resolveColor(color || `chart-${(i % SERIES_COUNT) + 1}`);
     return {
-      borderColor: c, backgroundColor: withAlpha(c, 0.14),
+      borderColor: c, backgroundColor: withAlpha(c, 0.12),
       fill: true, tension: 0.4, pointRadius: 0, borderWidth: 2,
       ...rest,
     };
@@ -87,7 +89,7 @@ function buildOptions({ type, legend, yMax, yLabel, stacked, thresholds, options
  *   thresholds  [{ value, tone: 'success'|'warning'|'danger', label, description }]
  *               dashed reference lines plus a legend under the chart
  *   timeframes  e.g. TIMEFRAMES.intraday; adds a toggle and resamples data
- *   info        show an ⓘ button that opens a detail drawer (uses `subtitle`)
+ *   info        show an info icon button that opens a detail drawer (uses `subtitle`)
  *   legend, height, yMax, yLabel, stacked, options (extra Chart.js options)
  */
 export default function ChartCard({
@@ -126,7 +128,7 @@ export default function ChartCard({
       </Card>
 
       {showInfo && (
-        <Drawer eyebrow="Chart details" title={title} onClose={() => setShowInfo(false)} width={400}>
+        <Drawer eyebrow="Chart details" title={title} onClose={() => setShowInfo(false)}>
           <div className="space-y-5">
             {subtitle && <p className="text-xs text-fg-muted leading-relaxed">{subtitle}</p>}
             <div className="tile" style={{ height: 240 }}>
@@ -147,8 +149,8 @@ function ThresholdLegend({ thresholds, stacked = false }) {
     <div className={`flex ${stacked ? 'flex-col' : 'flex-wrap'} gap-x-4 gap-y-2 mt-3 pt-3 border-t`}>
       {items.map((t) => (
         <div key={t.label} className="flex items-center gap-2 text-[10px]">
-          <span className="w-4 border-t-2 border-dashed" style={{ borderColor: `var(--color-${t.tone})` }} />
-          <span className="font-bold uppercase tracking-wide" style={{ color: `var(--color-${t.tone})` }}>{t.label}</span>
+          <span className="w-4 border-t-2 border-dashed" style={{ borderColor: toneColor(t.tone) }} />
+          <span className="font-bold uppercase tracking-[0.06em]" style={{ color: toneColor(t.tone) }}>{t.label}</span>
           {t.description && <span className="text-fg-muted">{t.description}</span>}
         </div>
       ))}

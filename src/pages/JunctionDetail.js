@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Card, Badge, PageHeader, Button, Field, DetailGrid, DataTable } from '../components/ui';
+import { Card, Badge, PageHeader, Button, Field, DetailGrid, DataTable, EmptyState } from '../components/ui';
 import ChartCard from '../components/charts/ChartCard';
 import { useData, useSim } from '../data/DataProvider';
 import PhaseDiagram from '../components/evp/PhaseDiagram';
@@ -19,7 +19,7 @@ function CameraCard({ junction, data, snap }) {
   if (!cams.length) return null;
   return (
     <Card title="Junction cameras" subtitle={`${cams.length} cameras, one on each approach · stand-in footage with live overlays from the twin`}
-      actions={<Link to={`/cctv?j=${junction.id}`} className="link-btn">OPEN CCTV WALL</Link>}>
+      actions={<Link to={`/cctv?j=${junction.id}`} className="link-btn">Open CCTV wall</Link>}>
       <JunctionCameras junction={junction} cameras={cams} snap={snap} size="sm" className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4 gap-3"
         onSelect={(c) => navigate(`/cctv?cam=${c.id}`)} />
     </Card>
@@ -67,7 +67,12 @@ export default function JunctionDetail() {
   }, [ctrl, junction, lastSampleT]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!junction || !ctrl) {
-    return <Card><p className="text-sm text-fg-muted">Unknown junction {id}. <Link className="link-btn" to="/junctions">BACK TO JUNCTIONS</Link></p></Card>;
+    return (
+      <EmptyState icon="traffic" title={`Junction ${id} not found`}
+        action={<Link to="/junctions"><Button icon="chevronRight" className="[&>svg]:rotate-180">Back to junctions</Button></Link>}>
+        There is no SCATS junction with this ID in the Kuching South register. Pick one from the junction list.
+      </EmptyState>
+    );
   }
 
   const phase = junction.phases.find((p) => p.id === st?.phaseId);
@@ -82,8 +87,13 @@ export default function JunctionDetail() {
     .sort((a, b) => b.at - a.at).slice(0, 10);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
+        breadcrumb={(
+          <nav className="app-breadcrumb" aria-label="Breadcrumb">
+            <Link to="/junctions">Junctions</Link><span className="app-breadcrumb-sep">/</span><span className="app-breadcrumb-current" aria-current="page">{junction.id}</span>
+          </nav>
+        )}
         title={<span>{junction.id} · {junction.name}{junction.poc ? <Badge tone="primary" className="ml-2 align-middle">Proof of concept</Badge> : null}</span>}
         subtitle={`SCATS site ${junction.scatsSite} · ${junction.arms.length} approaches · cycle ${junction.timing.cycleMin}–${junction.timing.cycleMax} s · amber ${junction.timing.amber} s · all-red ${junction.timing.allRed} s`}
         actions={<Link to="/junctions"><Button variant="secondary" icon="chevronRight" className="[&>svg]:rotate-180">All junctions</Button></Link>}
@@ -109,10 +119,10 @@ export default function JunctionDetail() {
         <div className="space-y-4">
           <Card title="Live controller" subtitle="Simulated SCATS controller behind the adapter interface">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <div className="tile"><p className="label-caps">Stage</p><p className="text-lg font-bold text-fg">{st?.stage === 'ALLRED' ? 'All-red' : st?.stage === 'AMBER' ? 'Amber' : 'Green'} · {st?.phaseId}</p><p className="text-[11px] text-fg-faint tabular-nums">{st ? `${Math.round(st.stageRemaining)} s remaining` : ''}{st?.held ? ' · held for EVP' : ''}</p></div>
-              <div className="tile"><p className="label-caps">Pedestrians</p><p className="text-lg font-bold text-fg">{st?.ped === 'WALK' ? 'Walk' : st?.ped === 'CLEAR' ? 'Clearing' : "Don't walk"}</p><p className="text-[11px] text-fg-faint">{st && st.ped !== 'DONT_WALK' ? `${Math.round(st.pedRemaining)} s left` : st?.approach ? `New calls held: ${st.approach.vehicleId} approaching` : st?.pedHeld ? `${st.pedHeld} call(s) held for ambulances this session` : 'No crossing'}</p></div>
-              <div className="tile"><p className="label-caps">Queue</p><p className="text-lg font-bold text-fg tabular-nums">{st?.totalQueue} veh</p><p className="text-[11px] text-fg-faint">normal ≈ {st?.normalQueue ?? '–'} veh</p></div>
-              <div className="tile"><p className="label-caps">Congestion</p><p className="text-lg font-bold text-fg tabular-nums">{fmtNum(st?.congestion, 2)}</p><p className="text-[11px] text-fg-faint">profile + live demand</p></div>
+              <div className="tile"><p className="label-caps">Stage</p><p className="font-display text-lg font-bold text-fg">{st?.stage === 'ALLRED' ? 'All-red' : st?.stage === 'AMBER' ? 'Amber' : 'Green'} · {st?.phaseId}</p><p className="text-[11px] text-fg-faint tabular-nums">{st ? `${Math.round(st.stageRemaining)} s remaining` : ''}{st?.held ? ' · held for EVP' : ''}</p></div>
+              <div className="tile"><p className="label-caps">Pedestrians</p><p className="font-display text-lg font-bold text-fg">{st?.ped === 'WALK' ? 'Walk' : st?.ped === 'CLEAR' ? 'Clearing' : "Don't walk"}</p><p className="text-[11px] text-fg-faint">{st && st.ped !== 'DONT_WALK' ? `${Math.round(st.pedRemaining)} s left` : st?.approach ? `New calls held: ${st.approach.vehicleId} approaching` : st?.pedHeld ? `${st.pedHeld} call(s) held for ambulances this session` : 'No crossing'}</p></div>
+              <div className="tile"><p className="label-caps">Queue</p><p className="font-display text-lg font-bold text-fg tabular-nums">{st?.totalQueue} veh</p><p className="text-[11px] text-fg-faint">normal ≈ {st?.normalQueue ?? '–'} veh</p></div>
+              <div className="tile"><p className="label-caps">Congestion</p><p className="font-display text-lg font-bold text-fg tabular-nums">{fmtNum(st?.congestion, 2)}</p><p className="text-[11px] text-fg-faint">profile + live demand</p></div>
             </div>
             {approaching.length > 0 ? (
               <div className="mt-3 space-y-2">

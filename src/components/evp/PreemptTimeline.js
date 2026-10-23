@@ -6,12 +6,12 @@ import { MAX_HOLD_S } from '../../evp/scats/controller';
    release → recovery, drawn to scale, plus the safety checklist. */
 
 const SEG = [
-  { key: 'wait', label: 'Safe-to-switch wait', color: 'var(--color-text-faint)' },
-  { key: 'amber', label: 'Amber 3 s', color: 'var(--signal-amber)' },
-  { key: 'allred', label: 'All-red 2 s', color: 'var(--signal-red)' },
-  { key: 'green', label: 'EVP green (hold)', color: 'var(--signal-green)' },
-  { key: 'release', label: 'Release amber + all-red', color: 'var(--signal-amber)' },
-  { key: 'recovery', label: 'SCATS recovery', color: 'var(--color-warning)' },
+  { key: 'wait', label: 'Safe-to-switch wait', color: 'var(--app-text-faint)' },
+  { key: 'amber', label: 'Amber 3 s', color: 'var(--app-warning)' },
+  { key: 'allred', label: 'All-red 2 s', color: 'var(--app-danger)' },
+  { key: 'green', label: 'EVP green (hold)', color: 'var(--app-success)' },
+  { key: 'release', label: 'Release amber + all-red', color: 'var(--app-warning)' },
+  { key: 'recovery', label: 'SCATS recovery', color: 'var(--app-warning-soft)' },
 ];
 
 export function timelineSegments(p, now) {
@@ -62,7 +62,7 @@ export default function PreemptTimeline({ p, now, live }) {
         <span><b className="text-fg">{p.vehicleId}</b> · {p.priority} · phase <b className="text-fg">{p.phaseId}</b>{p.corrected ? ` · corrected ${p.corrected}×` : ''}</span>
         <span>{live ? 'Live' : tl.recoveryStartAt != null && tl.recoveryEndAt == null ? 'Recovering' : 'Completed'} · {span.toFixed(0)} s</span>
       </div>
-      <div className="flex h-7 rounded-md overflow-hidden" style={{ gap: 2, background: 'var(--color-surface)' }} role="img" aria-label="Pre-emption timeline">
+      <div className="flex h-7 rounded-xs overflow-hidden" style={{ gap: 2, background: 'var(--app-surface-raised)' }} role="img" aria-label="Pre-emption timeline">
         {segs.map((s, i) => (
           <div key={i} title={`${SEG.find((x) => x.key === s.key).label}: ${(s.to - s.from).toFixed(1)} s`}
             style={{ flexGrow: s.to - s.from, flexBasis: 0, minWidth: 4, background: SEG.find((x) => x.key === s.key).color, opacity: s.key === 'recovery' ? 0.55 : 0.95 }} />
@@ -70,7 +70,7 @@ export default function PreemptTimeline({ p, now, live }) {
       </div>
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10.5px] text-fg-muted">
         {SEG.filter((x) => segs.some((s) => s.key === x.key)).map((x) => (
-          <span key={x.key} className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: x.color }} />{x.label}</span>
+          <span key={x.key} className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-swatch" style={{ background: x.color }} />{x.label}</span>
         ))}
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">

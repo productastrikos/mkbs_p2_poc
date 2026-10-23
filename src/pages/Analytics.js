@@ -34,7 +34,7 @@ function Overview({ an, allTrips }) {
     { key: 'base', header: 'No-EVP baseline', className: 'tabular-nums whitespace-nowrap', render: (t) => fmtS(t.baseline) },
     { key: 'saved', header: 'Saved', className: 'tabular-nums', render: (t) => <b className="text-fg">{Math.round(t.saved)} s</b> },
     { key: 'status', header: 'Status', render: (t) => <span className="text-fg-muted whitespace-nowrap">{t.status === 'TO_HOSPITAL' ? 'To hospital' : 'To patient'}</span> },
-    { key: 'r', header: '', render: (t) => <Link className="link-btn" to={`/assistant?trip=${t.id}`}>REPORT</Link> },
+    { key: 'r', header: '', render: (t) => <Link className="link-btn" to={`/assistant?trip=${t.id}`}>Report</Link> },
   ];
   return (
     <div className="space-y-4">
@@ -96,19 +96,20 @@ function Overview({ an, allTrips }) {
 /* ─── Junction heatmap + rollout ranking ───────────────────── */
 function Heatmap({ ranking }) {
   const max = Math.max(1, ...ranking.flatMap((r) => r.byHour.filter((x) => x != null)));
-  const shade = (v) => (v == null ? 'transparent' : `rgba(var(--chart-seq-rgb), ${(0.08 + 0.92 * (v / max)).toFixed(3)})`);
+  // Single-hue sequential scale on the brand accent.
+  const shade = (v) => (v == null ? 'transparent' : `color-mix(in srgb, var(--app-accent) ${(8 + 92 * (v / max)).toFixed(1)}%, transparent)`);
   return (
     <Card title="Junction delay heatmap" subtitle="Average red-light wait an ambulance would face without EVP, by junction and hour of day. Stronger colour = longer wait. Rows in rollout-rank order.">
       <div className="overflow-x-auto">
         <div style={{ minWidth: 640 }}>
           <div className="grid items-center gap-[2px]" style={{ gridTemplateColumns: '150px repeat(24, minmax(0, 1fr))' }}>
             <span />
-            {Array.from({ length: 24 }, (_, h) => <span key={h} className="text-[9px] text-fg-faint text-center">{h % 3 === 0 ? String(h).padStart(2, '0') : ''}</span>)}
+            {Array.from({ length: 24 }, (_, h) => <span key={h} className="text-[10px] text-fg-faint text-center">{h % 3 === 0 ? String(h).padStart(2, '0') : ''}</span>)}
             {ranking.map((r) => (
               <React.Fragment key={r.id}>
                 <span className="text-[11px] text-fg-muted truncate pr-2" title={r.name}><b className="text-fg">{r.id}</b> {r.name.split(' / ')[0]}</span>
                 {r.byHour.map((v, h) => (
-                  <span key={h} className="heat-cell" tabIndex={0} style={{ background: shade(v), outline: v == null ? '1px dashed var(--color-border)' : undefined, outlineOffset: -1 }}
+                  <span key={h} className="heat-cell" tabIndex={0} style={{ background: shade(v), outline: v == null ? '1px dashed var(--app-border-strong)' : undefined, outlineOffset: -1 }}
                     title={`${r.id} ${String(h).padStart(2, '0')}:00: ${v == null ? 'no crossings' : `${Math.round(v)} s avg wait (${r.byHourN[h]} crossings)`}`}
                     aria-label={`${r.id} ${h}:00 ${v == null ? 'no data' : `${Math.round(v)} seconds`}`} />
                 ))}
@@ -117,9 +118,9 @@ function Heatmap({ ranking }) {
           </div>
           <div className="flex items-center gap-2 mt-3 text-[10px] text-fg-faint">
             <span>0 s</span>
-            <span className="h-2 w-40 rounded" style={{ background: 'linear-gradient(90deg, rgba(var(--chart-seq-rgb),0.08), rgba(var(--chart-seq-rgb),1))' }} />
+            <span className="h-2 w-40 rounded-full" style={{ background: 'linear-gradient(90deg, color-mix(in srgb, var(--app-accent) 8%, transparent), var(--app-accent))' }} />
             <span>{Math.round(max)} s avg wait</span>
-            <span className="ml-3 inline-flex items-center gap-1"><span className="w-3 h-3 rounded-sm" style={{ outline: '1px dashed var(--color-border)', outlineOffset: -1 }} />no crossings in that hour</span>
+            <span className="ml-3 inline-flex items-center gap-1"><span className="w-3 h-3 rounded-swatch" style={{ outline: '1px dashed var(--app-border-strong)', outlineOffset: -1 }} />no crossings in that hour</span>
           </div>
         </div>
       </div>
@@ -287,7 +288,7 @@ export default function Analytics() {
   const { analytics, allTrips, assumptions, setAssumptions, modelInfo, modelLog, liveAccuracy, training, history } = useData();
   const [tab, setTab] = useState('overview');
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader title="Corridor Analytics" subtitle="Time saved against the no-EVP baseline, junction delay and rollout priority, cost/benefit and model learning"
         actions={<Tabs tabs={TABS} value={tab} onChange={setTab} />} />
       {tab === 'overview' && <Overview an={analytics} allTrips={allTrips} />}

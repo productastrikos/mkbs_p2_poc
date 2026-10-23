@@ -58,7 +58,7 @@ export default function Junctions() {
         const n = data.camerasByJ.get(r.id)?.length || 0;
         return n ? (
           <button type="button" className="link-btn whitespace-nowrap inline-flex items-center gap-1" title={`Watch the ${n} approach cameras at ${r.id}`}
-            onClick={(e) => { e.stopPropagation(); navigate(`/cctv?j=${r.id}`); }}><Icon name="video" size={12} />{n} CAMERAS</button>
+            onClick={(e) => { e.stopPropagation(); navigate(`/cctv?j=${r.id}`); }}><Icon name="video" size={12} />{n} cameras</button>
         ) : <span className="text-fg-faint">–</span>;
       },
     },
@@ -66,7 +66,7 @@ export default function Junctions() {
   ];
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader title="Junctions" subtitle={`${n} SCATS-controlled junctions in Kuching South with live controller state and pilot statistics`} />
       <StatGrid>
         <StatCard label="Signalised junctions" value={n} icon="traffic" subValues={[{ label: 'Proof of concept', value: data.junctions.find((j) => j.poc)?.id }, { label: 'Normal phases (avg)', value: fmtNum(data.junctions.reduce((s, j) => s + j.sequence.length, 0) / n, 1) }]} />

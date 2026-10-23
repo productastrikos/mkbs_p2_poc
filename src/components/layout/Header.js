@@ -4,7 +4,7 @@ import { Icon, IconButton, Button, Modal, DetailGrid } from '../ui';
 import { useTheme } from '../../theme/ThemeProvider';
 import { useData, useSim } from '../../data/DataProvider';
 import { NAV_SECTIONS, EXTRA_ROUTES, routeFor } from '../../routes';
-import { APP } from '../../config';
+import { APP, ORG } from '../../config';
 import { initials } from '../../utils';
 
 // Closes a popup when clicking outside `ref` or pressing Escape.
@@ -95,8 +95,8 @@ function Search() {
   const go = (path) => { navigate(path); setOpen(false); setQuery(''); inputRef.current?.blur(); };
 
   return (
-    <div className="search hidden sm:flex" ref={ref}>
-      <Icon name="search" size={14} className="text-fg-faint" />
+    <div className="header-search hidden sm:flex" ref={ref}>
+      <Icon name="search" size={14} />
       <input
         ref={inputRef}
         value={query}
@@ -107,19 +107,17 @@ function Search() {
         onKeyDown={(e) => { if (e.key === 'Enter' && results[0]) go(results[0].path); }}
       />
       {open && query.trim() && (
-        <div className="menu left-0 right-0">
-          <div className="menu-section">
-            {results.length === 0 && <p className="text-xs text-fg-faint text-center py-3">No junction, camera, unit, hospital, trip or page matches “{query}”</p>}
-            {results.map((r) => (
-              <button key={`${r.key}-${r.path}`} type="button" className="menu-item" onMouseDown={(e) => { e.preventDefault(); go(r.path); }}>
-                <Icon name={r.icon} size={15} />
-                <span className="flex-1 min-w-0">
-                  <span className="block font-semibold text-fg truncate">{r.label}</span>
-                  <span className="block text-[10px] text-fg-faint truncate">{r.section}</span>
-                </span>
-              </button>
-            ))}
-          </div>
+        <div className="search-dropdown">
+          {results.length === 0 && <p className="search-dropdown-empty">No junction, camera, unit, hospital, trip or page matches “{query}”. Try an ID such as J01 or AMB-11.</p>}
+          {results.map((r) => (
+            <button key={`${r.key}-${r.path}`} type="button" className="search-dropdown-item" onMouseDown={(e) => { e.preventDefault(); go(r.path); }}>
+              <span className="sdi-icon"><Icon name={r.icon} size={15} /></span>
+              <span className="sdi-text">
+                <span className="sdi-label">{r.label}</span>
+                <span className="sdi-desc">{r.section}</span>
+              </span>
+            </button>
+          ))}
         </div>
       )}
     </div>
@@ -133,8 +131,8 @@ function Clock() {
     return () => clearInterval(t);
   }, []);
   return (
-    <span className="hidden md:inline-block font-mono text-xs text-fg-muted px-2 py-1 rounded-md border bg-surface-raised" title="Wall clock, Kuching time (MYT, UTC+8)">
-      {now.toLocaleTimeString(APP.locale, { hour12: false, timeZone: APP.timeZone })} MYT
+    <span className="app-readout hidden md:inline-flex" title="Wall clock, Kuching time (MYT, UTC+8)">
+      <b>{now.toLocaleTimeString(APP.locale, { hour12: false, timeZone: APP.timeZone })}</b> MYT
     </span>
   );
 }
@@ -150,12 +148,13 @@ function ProfileModal({ onClose }) {
   const mine = (snap?.alerts || []).filter((a) => a.ackBy === operator.name || a.resolvedBy === operator.name);
   const mins = Math.max(0, Math.round((Date.now() - operator.signedInAt) / 60000));
   return (
-    <Modal eyebrow="Operator profile" title={operator.name} subtitle={`${operator.role} · ${APP.subtitle}`} onClose={onClose} width={480}
+    <Modal eyebrow="Operator profile" title={operator.name} subtitle={`${operator.role} · ${APP.subtitle}`} onClose={onClose}
       footer={<Button variant="secondary" onClick={onClose}>Close</Button>}>
       <div className="space-y-4">
         <DetailGrid items={[
           { label: 'Signed in', value: `${sinceLabel(operator.signedInAt)} (${mins < 60 ? `${mins} min` : `${Math.floor(mins / 60)} h ${mins % 60} min`})` },
-          { label: 'Console', value: 'MBKS Traffic Command, Kuching South' },
+          { label: 'Organisation', value: `${ORG.name} (${ORG.nameEn})` },
+          { label: 'Console', value: `${ORG.short} Traffic Command, Kuching South` },
           { label: 'Alerts handled', value: `${mine.length} acknowledged or resolved` },
           { label: 'Actions submitted', value: actions.filter((a) => a.by === operator.name).length },
           { label: 'Live trips completed', value: liveTrips.length },
@@ -185,39 +184,40 @@ function ProfileMenu({ onOpenNotifications }) {
   const { operator, signOut } = useData();
   useDismiss(ref, open, () => setOpen(false));
 
-  const item = (icon, label, onClick) => (
-    <button type="button" className="menu-item" role="menuitem" onClick={() => { setOpen(false); onClick?.(); }}>
-      <Icon name={icon} size={15} />{label}
+  const item = (icon, label, onClick, danger = false) => (
+    <button type="button" className={`profile-menu-item ${danger ? 'danger' : ''}`} role="menuitem" onClick={() => { setOpen(false); onClick?.(); }}>
+      <Icon name={icon} size={16} />{label}
     </button>
   );
 
   return (
     <div className="relative" ref={ref}>
-      <button type="button" className="avatar" onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open} title={operator.name}>
+      <button type="button" className="profile-trigger" onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open} aria-label={`Operator menu: ${operator.name}`} title={operator.name}>
         {initials(operator.name)}
       </button>
       {open && (
-        <div className="menu right-0" role="menu">
-          <div className="flex items-center gap-3 px-4 py-3 border-b">
+        <div className="profile-menu" role="menu">
+          <div className="profile-menu-header">
             <div className="avatar">{initials(operator.name)}</div>
             <div className="min-w-0">
-              <p className="text-xs font-bold text-fg truncate">{operator.name}</p>
-              <p className="text-[10px] text-fg-faint">{operator.role}</p>
+              <p className="name truncate">{operator.name}</p>
+              <p className="role truncate">{operator.role}</p>
+              <span className="status">Signed in</span>
             </div>
           </div>
-          <div className="menu-section">
+          <div className="profile-menu-section">
             {item('user', 'Profile', () => setProfile(true))}
             {item('bell', 'Notifications', onOpenNotifications)}
             {item('settings', 'Toggle theme', toggleTheme)}
           </div>
-          <div className="menu-section">
-            {item('logout', 'Sign out', () => setConfirmOut(true))}
+          <div className="profile-menu-section">
+            {item('logout', 'Sign out', () => setConfirmOut(true), true)}
           </div>
         </div>
       )}
       {profile && <ProfileModal onClose={() => setProfile(false)} />}
       {confirmOut && (
-        <Modal title="Sign out of the console?" onClose={() => setConfirmOut(false)}
+        <Modal title="Sign out of the console?" width={420} onClose={() => setConfirmOut(false)}
           footer={<><Button variant="secondary" onClick={() => setConfirmOut(false)}>Cancel</Button><Button variant="danger" icon="logout" onClick={() => { setConfirmOut(false); signOut(); }}>Sign out</Button></>}>
           <p className="text-sm text-fg-muted">The console locks until an operator signs in. Ambulances, signals and the anomaly guard keep running; alerts raised meanwhile wait in the queue.</p>
         </Modal>
@@ -239,36 +239,41 @@ export default function Header({ onToggleSidebar, activePanel, onTogglePanel }) 
 
   return (
     <header className="header">
-      <IconButton icon="menu" label="Toggle sidebar" onClick={onToggleSidebar} />
+      <IconButton icon="menu" label="Toggle navigation" onClick={onToggleSidebar} />
 
-      <div className="hidden sm:flex flex-col ml-1 mr-2 leading-tight">
-        <span className="text-[11px] font-bold uppercase tracking-widest text-fg">{APP.subtitle}</span>
-        <span className="text-[10px] text-fg-faint">{pageTitle}</span>
+      <div className="header-context hidden sm:flex">
+        <span className="astk-eyebrow">{APP.subtitle}</span>
+        <span className="header-context-title">{pageTitle}</span>
       </div>
 
       {f.search && <Search />}
       <div className="flex-1" />
-      {f.clock && <Clock />}
 
-      {f.themeToggle && (
-        <IconButton icon={theme === 'dark' ? 'sun' : 'moon'} label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`} onClick={toggleTheme} />
-      )}
+      <div className="header-actions">
+        {f.clock && <Clock />}
 
-      {f.insights && (
-        <Button variant="accent" icon="sparkles" onClick={() => onTogglePanel('insights')} aria-pressed={activePanel === 'insights'}>
-          <span className="hidden md:inline">AI Insights</span>
-        </Button>
-      )}
+        {f.themeToggle && (
+          <IconButton icon={theme === 'dark' ? 'sun' : 'moon'} label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`} onClick={toggleTheme} />
+        )}
 
-      {f.notifications && (
-        <IconButton icon="bell" label="Notifications" active={activePanel === 'notifications'} onClick={() => onTogglePanel('notifications')}>
-          {unread.length > 0 && (
-            <span className="notify-count" style={{ background: `var(--color-${hasDanger ? 'danger' : 'warning'})` }}>{unread.length}</span>
-          )}
-        </IconButton>
-      )}
+        {f.insights && (
+          <button type="button" className={`app-advisory-btn ${activePanel === 'insights' ? 'is-on' : ''}`} onClick={() => onTogglePanel('insights')}
+            aria-pressed={activePanel === 'insights'} aria-label="AI insights">
+            <Icon name="sparkles" size={16} />
+            <span className="hidden md:inline">AI insights</span>
+          </button>
+        )}
 
-      <ProfileMenu onOpenNotifications={() => activePanel !== 'notifications' && onTogglePanel('notifications')} />
+        {f.notifications && (
+          <IconButton icon="bell" label={`Notifications${unread.length ? `: ${unread.length} unread` : ''}`} active={activePanel === 'notifications'} onClick={() => onTogglePanel('notifications')}>
+            {unread.length > 0 && (
+              <span className={`notify-count ${hasDanger ? 'is-danger' : 'is-warning'}`} aria-hidden="true">{unread.length}</span>
+            )}
+          </IconButton>
+        )}
+
+        <ProfileMenu onOpenNotifications={() => activePanel !== 'notifications' && onTogglePanel('notifications')} />
+      </div>
     </header>
   );
 }

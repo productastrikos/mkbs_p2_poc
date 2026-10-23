@@ -1,0 +1,10 @@
+Seal of Majlis Bandaraya Kuching Selatan (MBKS, Kuching South City Council), Sarawak.
+
+brand/mbks-seal.svg
+  "Seal of South Kuching.svg" by Ranking Update, vectorised from the MBKS website. Public domain (PD Malaysia).
+  https://commons.wikimedia.org/wiki/File:Seal_of_South_Kuching.svg
+  Inkscape and RDF editor metadata removed; the artwork is unchanged.
+brand/mbks-seal-32.png, brand/apple-touch-icon.png
+  Rendered from brand/mbks-seal.svg (32×32 transparent favicon; 180×180 on white for home-screen icons).
+
+The seal is an official insignia. Copyright does not apply, but its use is restricted: show it only in work done for or approved by MBKS.

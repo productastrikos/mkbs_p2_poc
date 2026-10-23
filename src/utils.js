@@ -1,7 +1,16 @@
 /* Small shared helpers. */
 
+/* Tone names used across the app → theme tokens (theme.css). 'primary' is
+   the brand accent (selected / active), 'accent' the AI / advisory hue,
+   'neutral' inactive. Returns CSS var() strings for inline styles. */
+const TONE_COLOR = { primary: 'accent', accent: 'advisory-soft', neutral: 'text-faint', success: 'success', warning: 'warning', danger: 'danger', info: 'info' };
+const TONE_BG = { primary: 'accent-bg', accent: 'violet-bg', neutral: 'surface-raised', success: 'success-bg', warning: 'warning-bg', danger: 'danger-bg', info: 'info-bg' };
+export const toneToken = (tone) => TONE_COLOR[tone] || tone;
+export const toneColor = (tone) => `var(--app-${toneToken(tone)})`;
+export const toneBg = (tone) => `var(--app-${TONE_BG[tone] || `${tone}-bg`})`;
+
 // Health status used by stat cards, charts and KPI details.
-// `tone` maps to the colour classes in theme/components.css (.tone-*).
+// `tone` maps to the colour classes in theme/theme.css (.tone-*).
 export const STATUS = {
   normal:   { label: 'Normal',   tone: 'success' },
   warning:  { label: 'Warning',  tone: 'warning' },

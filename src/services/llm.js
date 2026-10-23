@@ -1,9 +1,13 @@
 /* Client for the LLM endpoints in server/llm.js. The API key stays on the
-   server; when it isn't configured the UI falls back to offline templates. */
+   server; when it isn't configured the UI falls back to offline templates.
+   REACT_APP_API_URL is the backend origin, set at build time in
+   .env.production; empty means same origin (dev server, npm run serve). */
+
+const API = (process.env.REACT_APP_API_URL || '').replace(/\/+$/, '');
 
 export async function llmStatus() {
   try {
-    const res = await fetch('/api/llm/status');
+    const res = await fetch(`${API}/api/llm/status`);
     if (!res.ok) return { available: false, reason: `HTTP ${res.status}` };
     return await res.json();
   } catch (e) {
@@ -16,7 +20,7 @@ export async function llmStatus() {
  * onText(fullTextSoFar) is called as chunks arrive. Resolves to the full text.
  */
 export async function streamLLM(path, body, onText, signal) {
-  const res = await fetch(`/api/llm/${path}`, {
+  const res = await fetch(`${API}/api/llm/${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),

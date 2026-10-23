@@ -7,7 +7,7 @@ import { STATUS } from '../../utils';
  * StatCard: KPI tile.
  *   label, value, unit
  *   icon       icon name (see Icon.js)
- *   trend      % change; ▲ for up, ▼ for down
+ *   trend      % change, shown with a directional icon
  *   inverted   lower is better: a falling trend shows green
  *   status     'normal' | 'warning' | 'critical' (footer badge)
  *   subValues  [{ label, value }] secondary metrics
@@ -19,20 +19,20 @@ export default function StatCard({ label, value, unit, icon = 'barChart', trend,
   const trendGood = inverted ? trend <= 0 : trend >= 0;
 
   return (
-    <div className="card card-hoverable stat-card">
+    <div className="card stat-card">
       <div className="stat-card-head">
-        <div className="stat-card-icon"><Icon name={icon} size={20} /></div>
+        <div className="stat-card-icon"><Icon name={icon} size={18} /></div>
         <p className="stat-card-label">{label}</p>
         {hasTrend && (
           <span className={`trend ${trendGood ? 'trend-up' : 'trend-down'}`}>
-            <span style={{ fontSize: 8 }}>{trend >= 0 ? '▲' : '▼'}</span>
+            <Icon name={trend >= 0 ? 'trendUp' : 'trendDown'} size={14} />
             {Math.abs(trend).toFixed(1)}%
           </span>
         )}
       </div>
 
       <div className="stat-card-value">
-        <span className="stat-card-number">{value}</span>
+        <span className="stat-card-number astk-numeric">{value}</span>
         {unit && <span className="stat-card-unit">{unit}</span>}
       </div>
 
@@ -47,11 +47,12 @@ export default function StatCard({ label, value, unit, icon = 'barChart', trend,
         </div>
       )}
 
+      <div className="stat-card-spacer" />
       <div className="stat-card-foot">
-        <Badge tone={s.tone} dot plain>{s.label.toUpperCase()}</Badge>
+        <Badge tone={s.tone} dot plain>{s.label}</Badge>
         {onDetails && (
           <button type="button" className="link-btn" onClick={onDetails} aria-label={`Details for ${label}`}>
-            VIEW DETAILS
+            View details
           </button>
         )}
       </div>

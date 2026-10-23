@@ -37,19 +37,19 @@ export default function PhaseDiagram({ junction, phase, armStates = {}, predicte
       aria-label={`Plan of ${junction.name}${phase ? `, phase ${phase.id} ${phase.label}` : ''}`}>
       <defs>
         <marker id={`ah-${junction.id}`} viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--color-primary)" />
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--app-teal)" />
         </marker>
         <marker id={`ap-${junction.id}`} viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--color-accent)" />
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--app-accent)" />
         </marker>
       </defs>
       {/* Carriageways */}
       {arms.map((a) => {
         const [x, y] = pt(a.bearing, R + 30);
         const w = 12 + a.lanes * 7;
-        return <line key={`road-${a.id}`} x1="0" y1="0" x2={x} y2={y} stroke="var(--color-surface-raised)" strokeWidth={w} strokeLinecap="butt" />;
+        return <line key={`road-${a.id}`} x1="0" y1="0" x2={x} y2={y} stroke="var(--app-surface-raised)" strokeWidth={w} strokeLinecap="butt" />;
       })}
-      <circle cx="0" cy="0" r="30" fill="var(--color-surface-raised)" />
+      <circle cx="0" cy="0" r="30" fill="var(--app-surface-raised)" />
       {/* Centre lines and stop lines */}
       {arms.map((a) => {
         const [x0, y0] = pt(a.bearing, 34);
@@ -59,8 +59,8 @@ export default function PhaseDiagram({ junction, phase, armStates = {}, predicte
         const [s1x, s1y] = pt(a.bearing, 34, 0);
         return (
           <g key={`mk-${a.id}`}>
-            <line x1={x0} y1={y0} x2={x1} y2={y1} stroke="var(--color-border-strong)" strokeWidth="1.2" strokeDasharray="6 5" />
-            <line x1={s0x} y1={s0y} x2={s1x} y2={s1y} stroke="var(--color-text-faint)" strokeWidth="2" />
+            <line x1={x0} y1={y0} x2={x1} y2={y1} stroke="var(--app-border-strong)" strokeWidth="1.2" strokeDasharray="6 5" />
+            <line x1={s0x} y1={s0y} x2={s1x} y2={s1y} stroke="var(--app-text-faint)" strokeWidth="2" />
           </g>
         );
       })}
@@ -76,13 +76,13 @@ export default function PhaseDiagram({ junction, phase, armStates = {}, predicte
       {moves.map(([from, move]) => {
         const to = junction.movements[from]?.[move];
         const d = movementPath(arms, from, to, move);
-        return d && <path key={`${from}${move}`} d={d} fill="none" stroke="var(--color-primary)" strokeWidth="3" strokeLinecap="round" markerEnd={`url(#ah-${junction.id})`} opacity="0.9" />;
+        return d && <path key={`${from}${move}`} d={d} fill="none" stroke="var(--app-teal)" strokeWidth="3" strokeLinecap="round" markerEnd={`url(#ah-${junction.id})`} opacity="0.9" />;
       })}
       {/* Predicted ambulance movement */}
       {predicted && (() => {
         const to = junction.movements[predicted.arm]?.[predicted.move];
         const d = movementPath(arms, predicted.arm, to, predicted.move);
-        return d && <path d={d} fill="none" stroke="var(--color-accent)" strokeWidth="5" strokeLinecap="round" strokeDasharray="1 7" markerEnd={`url(#ap-${junction.id})`} />;
+        return d && <path d={d} fill="none" stroke="var(--app-accent)" strokeWidth="5" strokeLinecap="round" strokeDasharray="1 7" markerEnd={`url(#ap-${junction.id})`} />;
       })()}
       {/* Signal lamps + labels */}
       {arms.map((a) => {
@@ -91,11 +91,11 @@ export default function PhaseDiagram({ junction, phase, armStates = {}, predicte
         const [tx, ty] = pt(a.bearing, R + 40);
         return (
           <g key={`sig-${a.id}`}>
-            <circle cx={lx} cy={ly} r="7" fill={SIGNAL_VAR[st]} stroke="var(--color-surface)" strokeWidth="2" />
+            <circle cx={lx} cy={ly} r="7" fill={SIGNAL_VAR[st]} stroke="var(--app-surface)" strokeWidth="2" />
             {showLabels && (
               <>
-                <text x={tx} y={ty - 4} textAnchor="middle" fontSize="11" fontWeight="700" fill="var(--color-text)">{a.id}</text>
-                <text x={tx} y={ty + 9} textAnchor="middle" fontSize="8.5" fill="var(--color-text-faint)">{(a.road || 'unnamed').replace('Jalan ', 'Jln ').slice(0, 22)}</text>
+                <text x={tx} y={ty - 4} textAnchor="middle" fontSize="11" fontWeight="700" fontFamily="'Lexend Deca', sans-serif" fill="var(--app-text)">{a.id}</text>
+                <text x={tx} y={ty + 9} textAnchor="middle" fontSize="9.5" fill="var(--app-text-faint)">{(a.road || 'unnamed').replace('Jalan ', 'Jln ').slice(0, 22)}</text>
               </>
             )}
           </g>

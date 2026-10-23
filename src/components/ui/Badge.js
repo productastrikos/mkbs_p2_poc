@@ -1,4 +1,5 @@
 import React from 'react';
+import { toneColor } from '../../utils';
 
 /**
  * Badge: a small coloured status pill.
@@ -6,17 +7,17 @@ import React from 'react';
  *   dot:   show a leading dot
  *   plain: text only, without background or border
  */
-export default function Badge({ tone = 'neutral', dot = false, plain = false, className = '', children }) {
+export default function Badge({ tone = 'neutral', dot = false, plain = false, className = '', title, children }) {
   if (plain) {
     return (
-      <span className={`status-text ${className}`} style={{ color: `var(--color-${tone})` }}>
+      <span className={`status-text ${className}`} style={{ color: toneColor(tone) }} title={title}>
         {dot && <span className="badge-dot" />}
         {children}
       </span>
     );
   }
   return (
-    <span className={`badge tone-${tone} ${className}`}>
+    <span className={`badge tone-${tone} ${className}`} title={title}>
       {dot && <span className="badge-dot" />}
       {children}
     </span>

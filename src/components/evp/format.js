@@ -7,7 +7,9 @@ export const STATUS_LABEL = { TO_PATIENT: 'To patient', TO_HOSPITAL: 'To hospita
 export const MODE_TONE = { ADAPTIVE: 'neutral', PREEMPT: 'primary', RECOVERY: 'warning' };
 export const MODE_LABEL = { ADAPTIVE: 'SCATS adaptive', PREEMPT: 'EVP pre-emption', RECOVERY: 'Recovery' };
 export const STAGE_LABEL = { GREEN: 'green', AMBER: 'amber', ALLRED: 'all-red' };
-export const SIGNAL_VAR = { G: 'var(--signal-green)', A: 'var(--signal-amber)', R: 'var(--signal-red)' };
+// Signal lamps use the status tokens; the halo is the §7.9 status-dot ring.
+export const SIGNAL_VAR = { G: 'var(--app-success)', A: 'var(--app-warning)', R: 'var(--app-danger)' };
+export const SIGNAL_HALO = { G: 'var(--app-success-bg)', A: 'var(--app-warning-bg)', R: 'var(--app-danger-bg)' };
 export const REQUEST_LABEL = {
   SENT: 'Requested', GREEN: 'Green held', YIELDING: 'Yielding', BLOCKED: 'Blocked', RELEASED: 'Released', CANCELLED: 'Cancelled',
 };
@@ -62,9 +64,9 @@ export function ModeBadge({ mode, recovery }) {
 export function SignalHead({ state, size = 10, vertical = false }) {
   const lamps = ['R', 'A', 'G'];
   return (
-    <span className={`inline-flex ${vertical ? 'flex-col' : ''} gap-0.5 p-0.5 rounded-md`} style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }} role="img" aria-label={`Signal ${state === 'G' ? 'green' : state === 'A' ? 'amber' : 'red'}`}>
+    <span className={`inline-flex ${vertical ? 'flex-col' : ''} gap-1 p-1 rounded-full`} style={{ background: 'var(--app-surface-soft)', border: '1px solid var(--app-border)' }} role="img" aria-label={`Signal ${state === 'G' ? 'green' : state === 'A' ? 'amber' : 'red'}`}>
       {lamps.map((l) => (
-        <span key={l} className="rounded-full" style={{ width: size, height: size, background: state === l ? SIGNAL_VAR[l] : 'var(--color-surface-raised)', boxShadow: state === l ? `0 0 6px ${SIGNAL_VAR[l]}` : 'none' }} />
+        <span key={l} className="rounded-full" style={{ width: size, height: size, background: state === l ? SIGNAL_VAR[l] : 'var(--app-surface-raised)', boxShadow: state === l ? `0 0 0 2px ${SIGNAL_HALO[l]}` : 'none' }} />
       ))}
     </span>
   );

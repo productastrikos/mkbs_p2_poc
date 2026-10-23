@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Badge, IconButton } from '../ui';
+import { Badge, IconButton, EmptyState } from '../ui';
 import { useData } from '../../data/DataProvider';
 import { timeAgo } from '../../utils';
 
@@ -16,34 +16,34 @@ export default function NotificationsPanel({ onClose }) {
   const unread = notifications.filter((n) => !n.read);
 
   return (
-    <aside className="side-panel w-80 max-w-full">
+    <aside className="side-panel" aria-label="Notifications">
       <div className="panel-header">
         <div>
-          <h3 className="text-sm font-semibold text-fg">Notifications</h3>
+          <h2 className="side-panel-title">Notifications</h2>
           <p className="text-xs text-fg-faint">{unread.length} unread</p>
         </div>
-        <div className="flex items-center gap-2">
-          {unread.length > 0 && <button type="button" className="link-btn" onClick={markAllRead}>MARK ALL READ</button>}
-          <IconButton icon="close" label="Close" plain onClick={onClose} />
+        <div className="flex items-center gap-3">
+          {unread.length > 0 && <button type="button" className="link-btn" onClick={markAllRead}>Mark all read</button>}
+          <IconButton icon="close" label="Close notifications" onClick={onClose} />
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-5">
         {GROUPS.map(({ tone, label }) => {
           const items = unread.filter((n) => n.tone === tone);
           if (!items.length) return null;
           return (
             <div key={tone} className="space-y-2">
-              <Badge tone={tone} plain>{label.toUpperCase()} ({items.length})</Badge>
+              <Badge tone={tone} plain dot>{label} ({items.length})</Badge>
               {items.map((n) => (
-                <div key={n.id} className={`tile tone-${tone}`}>
-                  <p className="text-xs font-semibold text-fg">{n.title}</p>
-                  <p className="text-[11px] text-fg-muted mt-0.5">{n.message}</p>
+                <div key={n.id} className={`notice tone-${tone}`}>
+                  <p className="notice-title">{n.title}</p>
+                  <p className="notice-body">{n.message}</p>
                   <div className="flex items-center justify-between mt-2 gap-2">
                     <span className="text-[10px] text-fg-faint">{timeAgo(n.createdAt)}</span>
                     <span className="flex gap-3">
-                      {n.link && <button type="button" className="link-btn" onClick={() => { markRead(n.id); navigate(n.link); onClose(); }}>VIEW</button>}
-                      <button type="button" className="link-btn" onClick={() => markRead(n.id)}>MARK AS READ</button>
+                      {n.link && <button type="button" className="link-btn" onClick={() => { markRead(n.id); navigate(n.link); onClose(); }}>View</button>}
+                      <button type="button" className="link-btn" onClick={() => markRead(n.id)}>Mark as read</button>
                     </span>
                   </div>
                 </div>
@@ -51,7 +51,11 @@ export default function NotificationsPanel({ onClose }) {
             </div>
           );
         })}
-        {unread.length === 0 && <p className="text-center text-sm text-fg-faint py-8">You're all caught up. Alerts from the anomaly guard and the decision engine appear here.</p>}
+        {unread.length === 0 && (
+          <EmptyState icon="bell" title="You're all caught up">
+            Alerts from the anomaly guard and the decision engine appear here as they happen.
+          </EmptyState>
+        )}
       </div>
     </aside>
   );

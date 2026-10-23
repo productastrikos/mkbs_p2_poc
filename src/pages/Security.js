@@ -68,7 +68,7 @@ export default function Security() {
   });
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader title="Alerts & Security" subtitle="Authorisation and anomaly guard: only registered ambulances on an active trip with a patient status can request a green" />
       <StatGrid>
         <StatCard label="Open alerts" value={open.length} icon="alert" status={open.some((a) => a.severity === 'danger') ? 'critical' : open.length ? 'warning' : 'normal'}

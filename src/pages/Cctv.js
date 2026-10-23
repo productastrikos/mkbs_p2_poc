@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Card, Badge, Button, Tabs, FilterChips, Drawer, Icon, PageHeader } from '../components/ui';
+import { Card, Badge, Button, Tabs, FilterChips, Drawer, Icon, PageHeader, EmptyState } from '../components/ui';
+import { toneColor } from '../utils';
 import { useData, useSim } from '../data/DataProvider';
 import CctvFeed, { cameraActivity, saveSnapshot, isNight } from '../components/evp/CctvFeed';
 import { ModeBadge, PriorityBadge, SignalHead, REQUEST_LABEL, STAGE_LABEL } from '../components/evp/format';
@@ -16,7 +17,7 @@ function JunctionState({ cam, junction, act, navigate }) {
       actions={<ModeBadge mode={st.mode} recovery={st.recovery} />}>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
         {junction.arms.map((a) => (
-          <div key={a.id} className="tile py-1.5 flex items-center gap-2" style={a.id === cam.arm ? { borderColor: 'var(--color-primary-border)' } : undefined}>
+          <div key={a.id} className="tile py-1.5 flex items-center gap-2" style={a.id === cam.arm ? { borderColor: 'var(--app-accent-border)' } : undefined}>
             <SignalHead state={st.arms[a.id] || 'R'} size={7} />
             <div className="min-w-0">
               <p className="text-xs font-bold text-fg">{a.id}{a.id === cam.arm ? <span className="text-primary font-semibold"> · this camera</span> : ''}</p>
@@ -32,7 +33,7 @@ function JunctionState({ cam, junction, act, navigate }) {
             <span className="text-fg-muted">from {t.next.arm}{t.next.arm === cam.arm ? ' (in this view)' : ''} · {Math.round(t.next.dist)} m · ETA {t.next.eta != null ? `${Math.round(t.next.eta)} s` : '–'}</span>
             <span className="flex-1" />
             <Badge tone={t.next.request === 'GREEN' ? 'success' : t.next.request === 'YIELDING' ? 'warning' : t.next.request === 'BLOCKED' ? 'danger' : t.next.request ? 'primary' : 'neutral'}>{REQUEST_LABEL[t.next.request] || 'Not requested yet'}</Badge>
-            <button type="button" className="link-btn" onClick={() => navigate(`/?focus=${t.vehicleId}`)}>FOLLOW ON MAP</button>
+            <button type="button" className="link-btn" onClick={() => navigate(`/?focus=${t.vehicleId}`)}>Follow on map</button>
           </div>
         ))}
         {!act.approaching.length && <p className="text-xs text-fg-faint">No ambulance approaching this junction.{st.preempt ? ` Pre-emption for ${st.preempt.vehicleId} in progress.` : ''}</p>}
@@ -45,7 +46,7 @@ function JunctionState({ cam, junction, act, navigate }) {
 export function FootageCredits({ clips, cameras, note, onClose }) {
   const used = (id) => cameras.filter((c) => c.clip === id).map((c) => c.id);
   return (
-    <Drawer title="Footage & licences" eyebrow="CCTV" subtitle={`${clips.length} stand-in clips behind ${cameras.length} cameras`} onClose={onClose} width={500}>
+    <Drawer title="Footage & licences" eyebrow="CCTV" subtitle={`${clips.length} stand-in clips behind ${cameras.length} cameras`} onClose={onClose}>
       <p className="text-xs text-fg-muted mb-4">{note} Clips derived from CC BY-SA works are shared under the same licence.</p>
       <ul className="space-y-3">
         {clips.map((c) => {
@@ -106,7 +107,11 @@ export default function Cctv() {
 
   if (!snap) return null;
   if (!cams.length) {
-    return <Card><p className="text-sm text-fg-muted">No cameras are configured. Run <code>node scripts/fetch-cctv.mjs</code> to build public/data/cameras.json.</p></Card>;
+    return (
+      <EmptyState icon="video" title="No cameras configured">
+        Run <code>node scripts/fetch-cctv.mjs</code> to build public/data/cameras.json, then reload this page.
+      </EmptyState>
+    );
   }
 
   const junction = jById.get(cam.junctionId);
@@ -132,14 +137,14 @@ export default function Cctv() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <PageHeader
         title="CCTV"
         subtitle={`${cams.length} cameras: one on every signalised approach of the ${camsByJ.size} junctions · ${activeJ.size} junction${activeJ.size === 1 ? '' : 's'} with EVP activity now · ${night ? 'night: IR mode' : 'daylight'}${snap.rain ? ' · raining' : ''} (twin time)`}
         actions={(
           <>
             <Tabs size="sm" tabs={[{ value: 'focus', label: 'Focus' }, { value: 'wall', label: 'Wall' }]} value={layout} onChange={setLayout} />
-            <Button size="sm" variant={follow ? 'primary' : 'secondary'} icon="navigation" onClick={() => setFollow((f) => !f)}
+            <Button size="sm" variant={follow ? 'soft' : 'secondary'} icon="navigation" onClick={() => setFollow((f) => !f)} aria-pressed={follow}
               title="Switch to the camera facing the most urgent pre-emption or approaching ambulance">
               {follow ? 'Following ambulances' : 'Follow ambulances'}
             </Button>
@@ -153,14 +158,14 @@ export default function Cctv() {
         <span>MBKS junction cameras are not connected to this prototype. Each camera plays openly licensed <b className="text-fg">stand-in footage</b> from fixed, elevated traffic cameras elsewhere; the time, signal, queue, EVP and weather overlays are live from the twin.</span>
       </div>
 
-      {note && <div className="tile text-xs tone-success flex gap-2"><span className="flex-1">{note}</span><button type="button" className="link-btn" onClick={() => setNote(null)}>DISMISS</button></div>}
+      {note && <div className="tile text-xs tone-success flex gap-2" role="status"><span className="flex-1">{note}</span><button type="button" className="link-btn" onClick={() => setNote(null)}>Dismiss</button></div>}
       {follow && !active.length && <p className="text-xs text-fg-faint">Following: no EVP activity at any junction right now; holding on {cam.id}.</p>}
 
       {layout === 'focus' ? (
         <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_300px] gap-4">
           <div className="space-y-4 min-w-0">
             <Card padded={false}>
-              <div ref={frameRef} className="cctv-fs">
+              <div ref={frameRef} className="cctv-fs astk-fixed-dark">
                 <CctvFeed ref={videoRef} size="lg" camera={cam} junction={junction} snap={snap} highlight={false} />
               </div>
               <div className="p-3 flex flex-wrap gap-2 items-center">
@@ -199,7 +204,7 @@ export default function Cctv() {
                         <span className="text-[10px] text-fg-faint tabular-nums shrink-0">{list.length} <Icon name="video" size={10} className="inline" /></span>
                       </span>
                       {(st?.mode !== 'ADAPTIVE' || amb) && (
-                        <span className="block text-[10.5px] pl-10 mt-0.5" style={{ color: st?.mode === 'PREEMPT' ? 'var(--color-primary)' : 'var(--color-warning)' }}>
+                        <span className="block text-[10.5px] pl-10 mt-0.5" style={{ color: toneColor(st?.mode === 'PREEMPT' ? 'primary' : 'warning') }}>
                           {st?.mode === 'PREEMPT' ? `EVP pre-emption${st.grant ? ` for ${st.grant.vehicleId}` : ''}` : st?.mode === 'RECOVERY' ? 'SCATS recovery' : ''}
                           {amb ? `${st?.mode !== 'ADAPTIVE' ? ' · ' : ''}${amb.vehicleId} from ${amb.next.arm}, ETA ${Math.round(amb.next.eta ?? 0)} s` : ''}
                         </span>
@@ -233,7 +238,13 @@ export default function Cctv() {
                 </section>
               );
             })}
-            {!groups.length && <Card><p className="text-sm text-fg-muted text-center py-6">No EVP activity at any junction right now. Run the SGH demo on the <Link className="text-primary underline" to="/">Command Map</Link> to send an ambulance through.</p></Card>}
+            {!groups.length && (
+              <Card>
+                <EmptyState icon="video" title="No EVP activity right now">
+                  No junction is pre-empting or has an ambulance approaching. Run the SGH demo on the <Link className="link-btn" to="/">Command Map</Link> to send one through.
+                </EmptyState>
+              </Card>
+            )}
           </div>
         </>
       )}

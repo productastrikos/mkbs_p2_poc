@@ -1,4 +1,6 @@
 import React from 'react';
+import Icon from './Icon';
+import { toneColor } from '../../utils';
 
 // UI kit. Import from here: import { Card, Button, Badge } from '../components/ui';
 export { default as Icon } from './Icon';
@@ -15,28 +17,40 @@ export function ProgressBar({ value, max = 100, tone = 'primary', className = ''
   const pct = max > 0 ? Math.min(100, Math.max(0, (value / max) * 100)) : 0;
   return (
     <div className={`progress ${className}`}>
-      <div className="progress-bar" style={{ width: `${pct}%`, background: `var(--color-${tone})` }} />
+      <div className="progress-bar" style={{ width: `${pct}%`, background: toneColor(tone) }} />
     </div>
   );
 }
 
-/** PageHeader: page title, optional subtitle and right-aligned actions. */
-export function PageHeader({ title, subtitle, actions }) {
+/** PageHeader: every page opens with this block (title, subtitle, actions). */
+export function PageHeader({ title, subtitle, actions, breadcrumb }) {
   return (
-    <div className="flex items-start justify-between flex-wrap gap-4">
-      <div>
+    <div className="page-header-block">
+      <div className="min-w-0">
+        {breadcrumb}
         <h1 className="page-title">{title}</h1>
         {subtitle && <p className="page-subtitle">{subtitle}</p>}
       </div>
-      {actions && <div className="flex items-center gap-2 flex-wrap">{actions}</div>}
+      {actions && <div className="page-header-actions">{actions}</div>}
     </div>
   );
 }
 
-/** StatGrid: responsive grid for a row of StatCards. */
-export function StatGrid({ children, cols = 4 }) {
-  const lg = { 3: 'lg:grid-cols-3', 4: 'lg:grid-cols-4' }[cols] || 'lg:grid-cols-4';
-  return <div className={`grid grid-cols-1 sm:grid-cols-2 ${lg} gap-4`}>{children}</div>;
+/** StatGrid: KPI row, repeat(auto-fit, minmax(220px, 1fr)) with equal-height cards. */
+export function StatGrid({ children }) {
+  return <div className="app-kpi-row">{children}</div>;
+}
+
+/** EmptyState: what is missing and the next action (§7.19). */
+export function EmptyState({ icon = 'info', title, children, action, compact = false }) {
+  return (
+    <div className={`app-empty ${compact ? 'app-empty-sm' : ''}`}>
+      <Icon name={icon} size={44} strokeWidth={1.5} className="app-empty-icon" />
+      {title && <p className="app-empty-title">{title}</p>}
+      {children && <div className="app-empty-text">{children}</div>}
+      {action}
+    </div>
+  );
 }
 
 /** Field: a label and value row inside cards. */

@@ -14,8 +14,10 @@ function cached(key, make) {
   return cache.get(key);
 }
 
-const PRIORITY_COLOR = { Critical: 'var(--color-danger)', Urgent: 'var(--color-warning)', 'Non-urgent': 'var(--color-info)' };
-const MODE_FILL = { ADAPTIVE: 'var(--color-surface-raised)', PREEMPT: 'var(--color-primary)', RECOVERY: 'var(--color-warning)' };
+const PRIORITY_COLOR = { Critical: 'var(--app-danger)', Urgent: 'var(--app-warning)', 'Non-urgent': 'var(--app-info)' };
+const MODE_FILL = { ADAPTIVE: 'var(--app-surface-raised)', PREEMPT: 'var(--app-accent)', RECOVERY: 'var(--app-warning)' };
+// Lucide-style lock that marks a quarantined unit's label (no emoji in the UI).
+const LOCK = '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-label="quarantined"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>';
 
 function spoke(bearing, len, color, width = 4) {
   const a = (bearing * Math.PI) / 180;
@@ -31,7 +33,7 @@ function arrowPath(junction, arm, move) {
   const p = (bearing, d) => { const r = (bearing * Math.PI) / 180; return [22 + Math.sin(r) * d, 22 - Math.cos(r) * d]; };
   const [x0, y0] = p(a.bearing, 19);
   const [x1, y1] = p(b.bearing, 19);
-  return `<path d="M${x0.toFixed(1)} ${y0.toFixed(1)} Q22 22 ${x1.toFixed(1)} ${y1.toFixed(1)}" fill="none" style="stroke: var(--color-accent)" stroke-width="3.5" stroke-linecap="round" marker-end="url(#m)"/>`;
+  return `<path d="M${x0.toFixed(1)} ${y0.toFixed(1)} Q22 22 ${x1.toFixed(1)} ${y1.toFixed(1)}" fill="none" style="stroke: var(--app-accent)" stroke-width="3.5" stroke-linecap="round" marker-end="url(#m)"/>`;
 }
 
 /**
@@ -45,18 +47,18 @@ export function junctionIcon(junction, st, ap, selected) {
   const key = `j|${junction.id}|${mode}|${Object.values(arms).join('')}|${ap ? `${ap.arm}${ap.move}${ap.label}` : ''}|${selected ? 1 : 0}`;
   return cached(key, () => {
     const spokes = junction.arms.map((a) => spoke(a.bearing, 15, SIGNAL_VAR[arms[a.id] || 'R'])).join('');
-    const ring = mode === 'PREEMPT' ? '<circle cx="22" cy="22" r="20" fill="none" style="stroke: var(--color-primary)" stroke-width="2.5" class="evp-pulse"/>'
-      : mode === 'RECOVERY' ? '<circle cx="22" cy="22" r="20" fill="none" style="stroke: var(--color-warning)" stroke-width="2" stroke-dasharray="3 3"/>' : '';
-    const sel = selected ? '<circle cx="22" cy="22" r="21" fill="none" style="stroke: var(--color-text)" stroke-width="2"/>' : '';
+    const ring = mode === 'PREEMPT' ? '<circle cx="22" cy="22" r="20" fill="none" style="stroke: var(--app-accent)" stroke-width="2.5" class="evp-pulse"/>'
+      : mode === 'RECOVERY' ? '<circle cx="22" cy="22" r="20" fill="none" style="stroke: var(--app-warning)" stroke-width="2" stroke-dasharray="3 3"/>' : '';
+    const sel = selected ? '<circle cx="22" cy="22" r="21" fill="none" style="stroke: var(--app-text)" stroke-width="2"/>' : '';
     const arrow = ap ? arrowPath(junction, ap.arm, ap.move) : '';
     const html = `
       <div class="jn-icon">
         <svg width="44" height="44" viewBox="0 0 44 44">
-          <defs><marker id="m" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M0 0L10 5L0 10z" style="fill: var(--color-accent)"/></marker></defs>
+          <defs><marker id="m" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M0 0L10 5L0 10z" style="fill: var(--app-accent)"/></marker></defs>
           ${ring}${sel}
-          <circle cx="22" cy="22" r="13" style="fill: var(--color-surface)" fill-opacity="0.88"/>
+          <circle cx="22" cy="22" r="13" style="fill: var(--app-surface)" fill-opacity="0.88"/>
           ${spokes}
-          <circle cx="22" cy="22" r="6" style="fill: ${MODE_FILL[mode]}; stroke: var(--color-text)" stroke-width="1.5"/>
+          <circle cx="22" cy="22" r="6" style="fill: ${MODE_FILL[mode]}; stroke: var(--app-text)" stroke-width="1.5"/>
           ${arrow}
         </svg>
         <span class="jn-label">${junction.id}${junction.poc ? ' ★' : ''}</span>
@@ -72,18 +74,18 @@ export function ambulanceIcon({ id, heading, priority, quarantined, selected, id
   const key = `a|${id}|${h}|${priority}|${quarantined ? 1 : 0}|${selected ? 1 : 0}|${idle ? 1 : 0}|${status}`;
   return cached(key, () => {
     if (idle) {
-      const ring = quarantined ? 'var(--color-danger)' : busy ? 'var(--color-accent)' : 'var(--color-surface)';
+      const ring = quarantined ? 'var(--app-danger)' : busy ? 'var(--app-advisory-soft)' : 'var(--app-surface)';
       return L.divIcon({ html: `<div class="amb-idle" title="${id}" style="border-color: ${ring}"></div>`, className: 'evp-divicon', iconSize: [10, 10], iconAnchor: [5, 5] });
     }
     // Driving back to base: no EVP, so neutral rather than a priority colour.
-    const color = quarantined || status === 'REPOSITIONING' ? 'var(--color-neutral)' : PRIORITY_COLOR[priority] || 'var(--color-info)';
+    const color = quarantined || status === 'REPOSITIONING' ? 'var(--app-text-faint)' : PRIORITY_COLOR[priority] || 'var(--app-info)';
     const html = `
       <div class="amb-icon ${selected ? 'is-selected' : ''}">
         <svg width="34" height="34" viewBox="0 0 34 34" style="transform: rotate(${h}deg)">
-          <circle cx="17" cy="17" r="13" style="fill: ${color}; stroke: ${selected ? 'var(--color-text)' : 'var(--color-surface)'}" stroke-width="2.5"/>
-          <path d="M17 6 L23 19 L17 16 L11 19 Z" fill="#ffffff"/>
+          <circle cx="17" cy="17" r="13" style="fill: ${color}; stroke: ${selected ? 'var(--app-text)' : 'var(--app-surface)'}" stroke-width="2.5"/>
+          <path d="M17 6 L23 19 L17 16 L11 19 Z" style="fill: var(--app-accent-chip-text)"/>
         </svg>
-        <span class="amb-label">${id}${quarantined ? ' ⛔' : ''}</span>
+        <span class="amb-label">${id}${quarantined ? LOCK : ''}</span>
       </div>`;
     return L.divIcon({ html, className: 'evp-divicon amb-marker', iconSize: [34, 34], iconAnchor: [17, 17] });
   });

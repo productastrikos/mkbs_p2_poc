@@ -9,6 +9,7 @@ import { resolveColor } from '../components/charts/chartTheme';
 import { ambulanceIcon, junctionIcon, hospitalIcon, moveGlyph } from '../components/evp/mapIcons';
 import { PriorityBadge, fmtS, STATUS_LABEL, REQUEST_LABEL, UnitStatusBadge } from '../components/evp/format';
 import { MOVE_LABEL } from '../evp/junctions';
+import { APP, ORG } from '../config';
 
 const PRIORITIES = ['Critical', 'Urgent', 'Non-urgent'];
 const STATUSES = [
@@ -29,17 +30,17 @@ function SignalStatus({ trip }) {
   if (trip.evpSuspended) {
     return (
       <div className="signal-card is-blocked">
-        <p className="text-[11px] font-bold uppercase tracking-widest opacity-80">EVP suspended</p>
-        <p className="text-2xl font-extrabold mt-1">Contact control room</p>
-        <p className="text-sm opacity-90 mt-1">The anomaly guard blocked green requests from this unit. Drive with caution; signals run normally.</p>
+        <p className="signal-card-eyebrow">EVP suspended</p>
+        <p className="signal-card-display text-2xl mt-1">Contact control room</p>
+        <p className="text-sm mt-1">The anomaly guard blocked green requests from this unit. Drive with caution; signals run normally.</p>
       </div>
     );
   }
   if (!n) {
     return (
       <div className="signal-card is-idle">
-        <p className="text-[11px] font-bold uppercase tracking-widest text-fg-faint">No EVP junctions ahead</p>
-        <p className="text-2xl font-extrabold mt-1 text-fg">Proceed to {trip.destination.short}</p>
+        <p className="signal-card-eyebrow text-fg-faint">No EVP junctions ahead</p>
+        <p className="signal-card-display text-2xl mt-1 text-fg">Proceed to {trip.destination.short}</p>
         <p className="text-sm text-fg-muted mt-1">{(trip.remaining / 1000).toFixed(1)} km remaining</p>
       </div>
     );
@@ -47,9 +48,9 @@ function SignalStatus({ trip }) {
   let cls = 'is-wait';
   let head = 'Approaching';
   let big = n.greenIn == null ? 'Predicting…' : n.greenIn < 1 ? 'Requesting green…' : `Green in ${Math.round(n.greenIn)} s`;
-  if (n.request === 'GREEN') { cls = 'is-green'; head = 'Green held for you'; big = 'GREEN: proceed with caution'; }
+  if (n.request === 'GREEN') { cls = 'is-green'; head = 'Green held for you'; big = 'Green: proceed with caution'; }
   else if (n.request === 'SENT') { head = 'Requested'; big = n.greenIn < 1 ? 'Green now' : `Green in ${Math.round(n.greenIn)} s`; }
-  else if (n.request === 'YIELDING') { cls = 'is-hold'; head = 'Priority conflict'; big = `HOLD: yielding to ${n.yieldTo || 'higher priority'}`; }
+  else if (n.request === 'YIELDING') { cls = 'is-hold'; head = 'Priority conflict'; big = `Hold: yielding to ${n.yieldTo || 'higher priority'}`; }
   else if (n.request === 'BLOCKED') { cls = 'is-blocked'; head = 'Request blocked'; big = 'Signals running normally'; }
   else if (n.request === 'CANCELLED') { cls = 'is-hold'; head = 'Request cancelled'; big = 'Re-requests when moving'; }
   else if (n.request === 'RELEASED') { cls = 'is-idle'; head = 'Released'; big = 'Signals back to SCATS'; }
@@ -57,19 +58,19 @@ function SignalStatus({ trip }) {
     <div className={`signal-card ${cls}`} role="status" aria-live="polite">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-widest opacity-80">{head} · {n.j}</p>
-          <p className="text-3xl font-extrabold mt-1 leading-tight">{big}</p>
-          <p className="text-sm opacity-90 mt-1 truncate">{n.name}</p>
+          <p className="signal-card-eyebrow">{head} · {n.j}</p>
+          <p className="signal-card-display text-3xl mt-1">{big}</p>
+          <p className="text-sm mt-1 truncate">{n.name}</p>
         </div>
         <div className="text-right shrink-0">
-          <p className="text-5xl font-black leading-none">{moveGlyph(n.top)}</p>
+          <p className="signal-card-display text-5xl leading-none">{moveGlyph(n.top)}</p>
           <p className="text-[11px] font-bold mt-1">{MOVE_LABEL[n.top]} · P {n.topP != null ? n.topP.toFixed(2) : '–'}</p>
         </div>
       </div>
       <div className="grid grid-cols-3 gap-2 mt-3 text-[12px]">
-        <div className="rounded-lg px-2 py-1.5" style={{ background: 'rgba(0,0,0,0.18)' }}><p className="opacity-75 text-[10px] uppercase font-bold">Distance</p><p className="font-bold text-base">{Math.round(n.dist)} m</p></div>
-        <div className="rounded-lg px-2 py-1.5" style={{ background: 'rgba(0,0,0,0.18)' }}><p className="opacity-75 text-[10px] uppercase font-bold">ETA</p><p className="font-bold text-base">{n.eta != null ? `${Math.round(n.eta)} s` : '–'}<span className="text-[11px] font-semibold opacity-80"> {n.lo != null ? `(${Math.round(n.lo)}–${Math.round(n.hi)})` : ''}</span></p></div>
-        <div className="rounded-lg px-2 py-1.5" style={{ background: 'rgba(0,0,0,0.18)' }}><p className="opacity-75 text-[10px] uppercase font-bold">Phase</p><p className="font-bold text-base">{n.phase || '–'}</p></div>
+        <div className="signal-card-well"><p className="text-[10px] uppercase font-bold tracking-[0.06em]">Distance</p><p className="font-bold text-base">{Math.round(n.dist)} m</p></div>
+        <div className="signal-card-well"><p className="text-[10px] uppercase font-bold tracking-[0.06em]">ETA</p><p className="font-bold text-base">{n.eta != null ? `${Math.round(n.eta)} s` : '–'}<span className="text-[11px] font-bold"> {n.lo != null ? `(${Math.round(n.lo)}–${Math.round(n.hi)})` : ''}</span></p></div>
+        <div className="signal-card-well"><p className="text-[10px] uppercase font-bold tracking-[0.06em]">Phase</p><p className="font-bold text-base">{n.phase || '–'}</p></div>
       </div>
     </div>
   );
@@ -95,7 +96,7 @@ function ActiveTrip({ trip, engine, data, theme }) {
           <span className="text-xs text-fg-faint">{fmtS(trip.elapsed)} · {(trip.remaining / 1000).toFixed(1)} km left · arrive in ~{fmtS(trip.etaDest, { short: true })}</span>
         </div>
         <SignalStatus trip={trip} />
-        <div className="card p-3">
+        <div className="card p-4">
           <p className="label-caps mb-2">Junctions on route</p>
           <div className="space-y-1.5">
             {trip.crossings.map((c) => {
@@ -131,7 +132,7 @@ function ActiveTrip({ trip, engine, data, theme }) {
           <Button variant="secondary" icon="route" onClick={() => engine.divert(trip.vehicleId)}>Divert</Button>
         </div>
         <Button variant="danger" block size="lg" icon="close" onClick={() => (confirmEnd ? engine.endTrip(trip.id, 'Ended by crew') : setConfirmEnd(true))}>
-          {confirmEnd ? 'TAP AGAIN TO END TRIP' : 'END TRIP'}
+          {confirmEnd ? 'Tap again to end trip' : 'End trip'}
         </Button>
         <p className="text-[10.5px] text-fg-faint">Stop / Divert are demo controls: they test the "cancel after 20 s" rule. The trip ends by itself on arrival.</p>
       </div>
@@ -208,8 +209,9 @@ export default function Tablet() {
   const screen = !loggedIn ? (
     <form className="p-6 max-w-md mx-auto space-y-4" onSubmit={(e) => { e.preventDefault(); if (pin.length === 4 && crew) setLoggedIn(true); }}>
       <div className="text-center space-y-1 pt-4">
-        <img src="/logo.svg" alt="" className="w-12 h-12 mx-auto" />
-        <p className="text-lg font-bold text-fg">GreenLight EVP · On-board unit</p>
+        <img src={APP.logo} alt={ORG.name} className="h-20 w-auto mx-auto mb-2" />
+        <p className="label-caps">{ORG.name}</p>
+        <h2 className="astk-h3">{APP.name} · On-board unit</h2>
         <p className="text-xs text-fg-faint">Crew sign-in</p>
       </div>
       <label className="block"><span className="label-caps field-label">Ambulance</span>
@@ -227,7 +229,7 @@ export default function Tablet() {
   ) : (
     <div className="p-5 space-y-4">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-base font-bold text-fg">{vehicleId}</span>
+        <span className="font-display text-base font-bold text-fg">{vehicleId}</span>
         <span className="text-xs text-fg-faint">{amb.callsign} · crew {crew} · at {vehSnap?.location}</span>
         <span className="flex-1" />
         {vehSnap && !quarantined && <UnitStatusBadge status={vehSnap.status} />}
@@ -244,7 +246,7 @@ export default function Tablet() {
         <div className="tile tone-success text-xs flex items-center gap-3 flex-wrap">
           <Icon name="check" size={16} />
           <span className="flex-1">Last trip {lastTrip.id} to {lastTrip.destinationName}: {fmtS(lastTrip.duration)}{lastTrip.arrived === false ? ' (ended before arrival)' : ''}, <b>{Math.round(lastTrip.saved)} s saved</b> across {lastTrip.junctions.length} junction{lastTrip.junctions.length === 1 ? '' : 's'}.</span>
-          <Link to={`/assistant?trip=${lastTrip.id}`} className="link-btn">POST-TRIP REPORT</Link>
+          <Link to={`/assistant?trip=${lastTrip.id}`} className="link-btn">Post-trip report</Link>
         </div>
       )}
       <div>
@@ -283,14 +285,14 @@ export default function Tablet() {
         <Tabs tabs={PRIORITIES} value={priority} onChange={setPriority} />
       </div>
       <button type="button" className="big-start" onClick={start}>
-        {status === 'RETURNING' ? 'START TRIP (NO EVP)' : 'START EVP'}
+        {status === 'RETURNING' ? 'Start trip (no EVP)' : 'Start EVP'}
       </button>
       {error && <p className="tile tone-danger text-xs">{error}</p>}
     </div>
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <PageHeader title="Ambulance Tablet" subtitle="On-board unit app: the crew taps START, the cloud tracks the approach to each junction, the roadside unit requests the green" />
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-4">
         <div className="tablet-frame"><div className="tablet-screen">{screen}</div></div>

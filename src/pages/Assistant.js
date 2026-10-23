@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Card, Badge, PageHeader, Button, Tabs, IconButton, Icon } from '../components/ui';
+import { Card, Badge, PageHeader, Button, Tabs, IconButton, Icon, EmptyState } from '../components/ui';
 import { useData, useSim } from '../data/DataProvider';
 import Markdown from '../components/evp/Markdown';
 import { streamLLM } from '../services/llm';
@@ -118,8 +118,12 @@ function Chat({ latestMonth }) {
         {messages.map((m, i) => (
           <div key={i} className={`flex gap-2 ${m.role === 'user' ? 'justify-end' : ''}`}>
             {m.role === 'assistant' && <span className="mt-1 text-primary shrink-0"><Icon name="sparkles" size={16} /></span>}
-            <div className={`rounded-xl px-3 py-2 text-sm max-w-[85%] ${m.role === 'user' ? 'bg-primary text-white' : 'tile'}`}>
-              {m.role === 'user' ? m.content : (m.content ? <Markdown text={m.content} /> : <span className="text-fg-faint text-xs">Thinking…</span>)}
+            <div className={`rounded-xl px-3 py-2 text-sm max-w-[85%] ${m.role === 'user' ? 'app-chat-user' : 'tile'}`}>
+              {m.role === 'user' ? m.content : (m.content ? <Markdown text={m.content} /> : (
+                <div className="space-y-1.5 py-1" style={{ width: 220 }} role="status" aria-label="Thinking">
+                  <div className="app-skeleton h-2.5 w-full" /><div className="app-skeleton h-2.5 w-5/6" /><div className="app-skeleton h-2.5 w-2/3" />
+                </div>
+              ))}
               {m.role === 'assistant' && !m.pending && m.source && (
                 <p className="text-[10px] text-fg-faint mt-1">{m.source === 'llm' ? `Claude ${llm.model}` : m.source === 'offline' ? `Offline rule-based answer${m.error ? ` (LLM error: ${m.error})` : ''}` : ''}</p>
               )}
@@ -141,7 +145,7 @@ function Chat({ latestMonth }) {
 /* ─── Reports ──────────────────────────────────────────────── */
 function ReportOutput({ result, busy, filename }) {
   const { llm } = useData();
-  if (!result && !busy) return <p className="text-xs text-fg-faint">Choose the options above and generate a report.</p>;
+  if (!result && !busy) return <EmptyState icon="file" title="No report yet" compact>Choose the options above, then generate a report. It appears here as Markdown you can copy or download.</EmptyState>;
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
@@ -208,7 +212,7 @@ function TripReport({ initialTrip }) {
             <optgroup label="Pilot history (most recent 60 with EVP junctions)">{historyOptions.map((t) => <option key={t.id} value={t.id}>{t.id} · {fmtLocal(t.start)} · {t.ambulanceId} → {t.destinationName}</option>)}</optgroup>
           </select>
         </label>
-        <Button icon="sparkles" onClick={() => run()} disabled={!trip || busy}>Generate report</Button>
+        <Button variant="soft" icon="sparkles" onClick={() => run()} disabled={!trip || busy}>Generate report</Button>
       </div>
       {trip && <p className="text-[11px] text-fg-faint">{trip.priority} · {trip.status === 'TO_HOSPITAL' ? 'To hospital' : 'To patient'} · {trip.junctions.length} EVP junction{trip.junctions.length === 1 ? '' : 's'} · {Math.round(trip.duration)} s with EVP vs {Math.round(trip.baseline)} s no-EVP baseline{trip.arrived === false ? ` · ${trip.endReason}` : ''}</p>}
       <ReportOutput result={result} busy={busy} filename={`${tripId}-post-trip-report.md`} />
@@ -254,7 +258,7 @@ function MonthlyReport({ months }) {
           </select>
         </label>
         <div><span className="label-caps field-label">Audience</span><Tabs tabs={AUDIENCES} value={audience} onChange={(a) => { setAudience(a); setResult(null); }} size="sm" /></div>
-        <Button icon="sparkles" onClick={run} disabled={busy}>Generate summary</Button>
+        <Button variant="soft" icon="sparkles" onClick={run} disabled={busy}>Generate summary</Button>
       </div>
       <ReportOutput result={result} busy={busy} filename={`greenlight-evp-${month}-${audience}.md`} />
     </div>
@@ -269,7 +273,7 @@ export default function Assistant() {
   const months = analytics.monthly.map((m) => m.month);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader title="AI Assistant & Reports" subtitle="Generative AI over the pilot data: operator Q&A, post-trip reports and monthly stakeholder summaries"
         actions={<LlmBadge llm={llm} />} />
       {!llm.checking && !llm.available && (

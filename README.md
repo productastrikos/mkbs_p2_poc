@@ -30,6 +30,10 @@ npm run build
 npm run serve        # serves build/ and /api/llm on http://localhost:3000
 ```
 
+`npm run build` reads `.env.production`, which points the bundle at the deployed API. For a same-origin local build, run `REACT_APP_API_URL= npm run build`.
+
+**Server deployment** (astrikos.xyz, `mbks-evp`): the static frontend and the API (`server/api.js`) run as two processes on ports 3287 and 4287. Commands, nginx blocks and checks are in [DEPLOY.md](DEPLOY.md).
+
 ## Demo walkthrough
 
 | Goal | Where | What to do |
@@ -119,7 +123,7 @@ src/
   components/evp/         phase diagram, pre-emption timeline, CCTV feed + overlay, map icons, Markdown renderer
   data/DataProvider.js    boot, model training, simulation loop, retraining
   setupProxy.js           mounts the LLM API on the dev server
-server/                   llm.js (Claude endpoints), index.js (production server)
+server/                   llm.js (Claude endpoints), index.js (single-process server), api.js (API-only server with CORS)
 scripts/                  data fetch/build, trip generator, acceptance checks
 ```
 
